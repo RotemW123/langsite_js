@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 
 function TextPage() {
@@ -8,7 +7,7 @@ function TextPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   
-  // New state for practice functionality
+  // Practice functionality state
   const [practiceMode, setPracticeMode] = useState(false);
   const [practiceWords, setPracticeWords] = useState([]);
   const [userAnswers, setUserAnswers] = useState({});
@@ -25,7 +24,6 @@ function TextPage() {
   const { textId } = useParams();
   const navigate = useNavigate();
 
-  // Original useEffect for fetching text
   useEffect(() => {
     const fetchText = async () => {
       const token = localStorage.getItem('token');
@@ -36,20 +34,27 @@ function TextPage() {
 
       try {
         setLoading(true);
-        const response = await axios.get(`http://localhost:5000/api/text/${textId}`, {
+        const response = await fetch(`http://localhost:5000/api/text/${textId}`, {
           headers: {
-            Authorization: `Bearer ${token}`
+            'Authorization': `Bearer ${token}`
           }
         });
-        setText(response.data);
+
+        if (!response.ok) {
+          if (response.status === 401) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('userId');
+            navigate('/signin');
+            return;
+          }
+          throw new Error('Failed to load text');
+        }
+
+        const data = await response.json();
+        setText(data);
       } catch (err) {
         console.error('Error fetching text:', err);
         setError('Failed to load the text. Please try again.');
-        if (err.response?.status === 401) {
-          localStorage.removeItem('token');
-          localStorage.removeItem('userId');
-          navigate('/signin');
-        }
       } finally {
         setLoading(false);
       }
@@ -58,7 +63,6 @@ function TextPage() {
     fetchText();
   }, [textId, navigate]);
 
-  // New handlers for practice functionality
   const handleCaseToggle = (caseName) => {
     setSelectedCases(prev => ({
       ...prev,
@@ -78,12 +82,23 @@ function TextPage() {
 
     try {
       setLoading(true);
-      const response = await axios.post('http://localhost:5001/analyze', {
-        text: text.content,
-        cases: selectedCasesList
+      const response = await fetch('http://localhost:5001/analyze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: text.content,
+          cases: selectedCasesList
+        })
       });
 
-      setPracticeWords(response.data.words);
+      if (!response.ok) {
+        throw new Error('Failed to analyze text');
+      }
+
+      const data = await response.json();
+      setPracticeWords(data.words);
       setUserAnswers({});
       setFeedback({});
       setPracticeMode(true);
@@ -105,15 +120,36 @@ function TextPage() {
   const checkAnswer = async (wordId) => {
     try {
       const word = practiceWords[wordId];
-      const response = await axios.post('http://localhost:5001/check', {
-        original: word.original,
-        answer: userAnswers[wordId],
-        case: word.case
+      // Log for debugging
+      console.log('Checking word:', {
+        original: word.original,     // The word as it appears in text (declined form)
+        answer: userAnswers[wordId], // User's answer - should match original
+        nominative: word.nominative, // What we show in the placeholder
+        case: word.case,            // The case we're practicing
       });
+
+      const response = await fetch('http://localhost:5001/check', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          original: word.original,
+          answer: userAnswers[wordId],
+          case: word.case
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to check answer');
+      }
+
+      const data = await response.json();
+      console.log('Server response:', data);
 
       setFeedback(prev => ({
         ...prev,
-        [wordId]: response.data
+        [wordId]: data
       }));
     } catch (err) {
       console.error('Error checking answer:', err);
@@ -125,19 +161,28 @@ function TextPage() {
   };
 
   const renderPracticeText = () => {
-    if (!text || !practiceWords.length) return null;
+    if (!text?.content) return null;
+
+    // If no practice words, just show the original text
+    if (!practiceWords.length) {
+      return <p className="text-content">{text.content}</p>;
+    }
 
     let content = text.content;
     const elements = [];
     let lastIndex = 0;
 
     practiceWords.forEach((word, index) => {
-      // Add text before the practice word
-      elements.push(content.slice(lastIndex, word.position));
-
-      // Add the practice input
+      // Add text before practice word
       elements.push(
-        <span key={index} className="practice-word">
+        <span key={`text-${index}`}>
+          {content.slice(lastIndex, word.position)}
+        </span>
+      );
+
+      // Add practice word component
+      elements.push(
+        <span key={`practice-${index}`} className="practice-word">
           <input
             type="text"
             value={userAnswers[index] || ''}
@@ -166,12 +211,15 @@ function TextPage() {
     });
 
     // Add remaining text
-    elements.push(content.slice(lastIndex));
+    elements.push(
+      <span key="text-end">
+        {content.slice(lastIndex)}
+      </span>
+    );
 
     return <div className="practice-text">{elements}</div>;
   };
 
-  // Loading state
   if (loading) {
     return (
       <div className="App">
@@ -182,7 +230,6 @@ function TextPage() {
     );
   }
 
-  // Error state
   if (error) {
     return (
       <div className="App">
@@ -199,7 +246,6 @@ function TextPage() {
     );
   }
 
-  // Not found state
   if (!text) {
     return (
       <div className="App">
@@ -216,7 +262,6 @@ function TextPage() {
     );
   }
 
-  // Main render
   return (
     <div className="App">
       <div className="text-practice-container">
