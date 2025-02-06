@@ -58,4 +58,65 @@ router.get('/:id', authMiddleware, async (req, res) => {
   }
 });
 
+
+
+// Update text
+router.put('/:id', authMiddleware, async (req, res) => {
+  const { title, content } = req.body;
+  const textId = req.params.id;
+  const userId = req.user.id;
+
+  try {
+    // First find the text and check ownership
+    const text = await Text.findById(textId);
+    
+    if (!text) {
+      return res.status(404).json({ message: 'Text not found' });
+    }
+
+    if (text.userId.toString() !== userId) {
+      return res.status(403).json({ message: 'Not authorized to edit this text' });
+    }
+
+    // Update the text
+    const updatedText = await Text.findByIdAndUpdate(
+      textId,
+      { title, content },
+      { new: true } // Return the updated document
+    );
+
+    res.json(updatedText);
+  } catch (error) {
+    console.error('Error updating text:', error);
+    res.status(500).json({ message: 'Error updating text' });
+  }
+});
+
+// Delete text
+router.delete('/:id', authMiddleware, async (req, res) => {
+  const textId = req.params.id;
+  const userId = req.user.id;
+
+  try {
+    // First find the text and check ownership
+    const text = await Text.findById(textId);
+    
+    if (!text) {
+      return res.status(404).json({ message: 'Text not found' });
+    }
+
+    if (text.userId.toString() !== userId) {
+      return res.status(403).json({ message: 'Not authorized to delete this text' });
+    }
+
+    // Delete the text
+    await Text.findByIdAndDelete(textId);
+
+    res.json({ message: 'Text deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting text:', error);
+    res.status(500).json({ message: 'Error deleting text' });
+  }
+});
+
 module.exports = router;

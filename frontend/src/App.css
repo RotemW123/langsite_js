@@ -254,3 +254,50 @@
 .feedback.incorrect {
   color: var(--error);
 }
+
+
+.text-header-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.text-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.text-actions button {
+  padding: 0.5rem 1rem;
+}
+
+/* Optional: Add hover effects for the delete button */
+.text-actions button[style*="--error"]:hover {
+  opacity: 0.9;
+}
+
+
+.text-card-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+
+.text-card-actions button {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+}
+
+/* Make buttons stack nicely on mobile */
+@media (max-width: 480px) {
+  .text-card-actions {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .text-card-actions button {
+    width: 100%;
+  }
+}
