@@ -89,7 +89,7 @@ router.get('/:id/chunks', authMiddleware, async (req, res) => {
     const text = await Text.findOne(
       { _id: id, userId: req.user.id }
     );
-    console.log('Found text:', text); // Add this to see the full text object
+    // console.log('Found text:', text); // Add this to see the full text object
 
     const paginatedText = await Text.findOne(
       { _id: id, userId: req.user.id },

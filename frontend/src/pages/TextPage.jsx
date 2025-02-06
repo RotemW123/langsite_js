@@ -2,8 +2,11 @@ import { useParams } from 'react-router-dom';
 import React, { useState, useEffect } from "react";
 import EditTextModal from "./EditTextModal";
 
-const CHUNKS_PER_PAGE = 5;
+const CHUNKS_PER_PAGE = 1;
 function TextPage() {  // Remove the { textId } prop
+  const [visibleChunks, setVisibleChunks] = useState([])
+  const [analyzedText, setAnalyzedText] = useState('');
+  const [practiceLoading, setPracticeLoading] = useState(false)
   const { textId } = useParams();
   // Original state
   const [title, setTitle] = useState('');
@@ -17,6 +20,9 @@ function TextPage() {  // Remove the { textId } prop
   
   // Edit and delete state
   const [showEditModal, setShowEditModal] = useState(false);
+
+  const [analyzedChunks, setAnalyzedChunks] = useState(new Set()); // Track which chunks have been analyzed
+
   
   // Practice functionality state
   const [practiceMode, setPracticeMode] = useState(false);
@@ -33,12 +39,12 @@ function TextPage() {  // Remove the { textId } prop
   });
 
   const fetchChunks = async (page) => {
-    const token = localStorage.getItem('token'); // Add this line at the start of the function
+    const token = localStorage.getItem('token');
     if (!token) {
       window.location.href = '/signin';
       return;
     }
-  
+
     try {
       setLoading(true);
       const response = await fetch(
@@ -49,28 +55,29 @@ function TextPage() {  // Remove the { textId } prop
           }
         }
       );
-  
+
       if (!response.ok) {
-        if (response.status === 401) {
-          localStorage.removeItem('token');
-          localStorage.removeItem('userId');
-          window.location.href = '/signin';
-          return;
-        }
         throw new Error('Failed to fetch chunks');
       }
-  
+
       const data = await response.json();
-      console.log("Received chunks data:", data);  // Add this to debug
-  
+      
       if (page === 0) {
-        setChunks(data.chunks);
+        setChunks([data.chunks[0]]); // Only set first chunk
+        setVisibleChunks([data.chunks[0]]);
         setTitle(data.title);
       } else {
-        setChunks(prev => [...prev, ...data.chunks]);
+        const nextChunk = data.chunks[0]; // Get only one new chunk
+        setChunks(prev => [...prev, nextChunk]);
+        if (practiceMode) {
+          // In practice mode, wait for analysis before showing
+          await analyzeAndAddChunk(nextChunk);
+        } else {
+          setVisibleChunks(prev => [...prev, nextChunk]);
+        }
       }
-  
-      setHasMore(data.hasMore);
+
+      setHasMore(currentPage + 1 < data.totalChunks);
       setCurrentPage(data.currentPage);
     } catch (err) {
       console.error('Error fetching chunks:', err);
@@ -80,14 +87,166 @@ function TextPage() {  // Remove the { textId } prop
     }
   };
 
+  const analyzeAndAddChunk = async (chunk) => {
+    setPracticeLoading(true);
+    try {
+      const selectedCasesList = Object.entries(selectedCases)
+        .filter(([_, isSelected]) => isSelected)
+        .map(([caseName]) => caseName);
+
+      const response = await fetch('http://localhost:5001/analyze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: chunk.content,
+          cases: selectedCasesList
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to analyze chunk');
+      }
+
+      const data = await response.json();
+      
+      // Adjust word positions based on previous chunks
+      const offset = visibleChunks.reduce((acc, c) => acc + c.content.length, 0);
+      const adjustedWords = data.words.map(word => ({
+        ...word,
+        position: word.position + offset
+      }));
+
+      setPracticeWords(prev => [...prev, ...adjustedWords]);
+      setVisibleChunks(prev => [...prev, chunk]);
+    } catch (err) {
+      console.error('Error analyzing chunk:', err);
+      setError('Failed to analyze text chunk');
+    } finally {
+      setPracticeLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchChunks(0);
   }, [textId]);
 
-  const handleLoadMore = () => {
+  const handleLoadMore = async () => {
     if (!hasMore || loading) return;
-    fetchChunks(currentPage + 1);
+    const nextPage = currentPage + 1;
+    await fetchChunks(nextPage);
+    
+    if (practiceMode) {
+      // Analyze new chunks
+      try {
+        setPracticeLoading(true);
+        const newChunks = chunks.slice(nextPage * CHUNKS_PER_PAGE, (nextPage + 1) * CHUNKS_PER_PAGE);
+        const newText = newChunks.map(chunk => chunk.content).join('');
+        
+        // Skip if this text was already analyzed
+        if (analyzedText.includes(newText)) {
+          return;
+        }
+        
+        const selectedCasesList = Object.entries(selectedCases)
+          .filter(([_, isSelected]) => isSelected)
+          .map(([caseName]) => caseName);
+
+        const response = await fetch('http://localhost:5001/analyze', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            text: newText,
+            cases: selectedCasesList
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to analyze new chunks');
+        }
+
+        const data = await response.json();
+        
+        // Adjust positions for new words
+        const offset = analyzedText.length;
+        const newWords = data.words.map(word => ({
+          ...word,
+          position: word.position + offset
+        }));
+
+        setPracticeWords(prev => [...prev, ...newWords]);
+        setAnalyzedText(prev => prev + newText);
+      } catch (err) {
+        console.error('Error analyzing new chunks:', err);
+        setError('Failed to analyze new text chunks');
+      } finally {
+        setPracticeLoading(false);
+      }
+    }
   };
+
+
+  const analyzeNewChunks = async () => {
+    const selectedCasesList = Object.entries(selectedCases)
+      .filter(([_, isSelected]) => isSelected)
+      .map(([caseName]) => caseName);
+
+    // Get only unanalyzed chunks
+    const newChunks = chunks.filter((_, index) => !analyzedChunks.has(index));
+    if (newChunks.length === 0) return;
+
+    try {
+      setPracticeLoading(true);
+      const newText = newChunks.map(chunk => chunk.content).join('');
+
+      const response = await fetch('http://localhost:5001/analyze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: newText,
+          cases: selectedCasesList
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to analyze text');
+      }
+
+      const data = await response.json();
+      
+      // Adjust word positions to account for previous chunks
+      const offset = chunks
+        .slice(0, chunks.length - newChunks.length)
+        .reduce((acc, chunk) => acc + chunk.content.length, 0);
+
+      const adjustedWords = data.words.map(word => ({
+        ...word,
+        position: word.position + offset
+      }));
+
+      // Merge new words with existing ones
+      setPracticeWords(prev => [...prev, ...adjustedWords]);
+      
+      // Mark these chunks as analyzed
+      setAnalyzedChunks(prev => {
+        const newSet = new Set(prev);
+        newChunks.forEach((_, index) => newSet.add(chunks.length - newChunks.length + index));
+        return newSet;
+      });
+
+    } catch (err) {
+      console.error('Error analyzing new chunks:', err);
+      setError('Failed to analyze new text chunks');
+    } finally {
+      setPracticeLoading(false);
+    }
+  };
+
 
   const getFullText = () => {
     return chunks.map(chunk => chunk.content).join('');
@@ -152,15 +311,17 @@ function TextPage() {  // Remove the { textId } prop
     }
 
     try {
-      setLoading(true);
-      const visibleText = getFullText();
+      setPracticeLoading(true);
+      // Reset visible chunks and practice words
+      setVisibleChunks([chunks[0]]);
+      
       const response = await fetch('http://localhost:5001/analyze', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          text: visibleText,
+          text: chunks[0].content,
           cases: selectedCasesList
         })
       });
@@ -178,9 +339,10 @@ function TextPage() {  // Remove the { textId } prop
       console.error('Error starting practice:', err);
       setError('Failed to analyze text for practice');
     } finally {
-      setLoading(false);
+      setPracticeLoading(false);
     }
   };
+
 
   const handleAnswerChange = (wordId, value) => {
     setUserAnswers(prev => ({
@@ -326,11 +488,25 @@ function TextPage() {  // Remove the { textId } prop
       </div>
 
       <div className="text-practice-layout">
-        {/* Text content */}
         <div className="text-content">
-          {practiceMode ? renderPracticeText() : (
+          {practiceMode ? (
             <>
-              {chunks.map((chunk, index) => (
+              {renderPracticeText()}
+              {hasMore && (
+                <div className="mt-6 text-center">
+                  <button
+                    onClick={handleLoadMore}
+                    disabled={loading || practiceLoading}
+                    className="primary-button"
+                  >
+                    {loading || practiceLoading ? 'Analyzing...' : 'Load More'}
+                  </button>
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              {visibleChunks.map((chunk, index) => (
                 <div key={index} className="mb-4">
                   {chunk.content}
                 </div>
