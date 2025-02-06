@@ -1,11 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import EditTextModal from './EditTextModal';
 
 function TextPage() {
   // Original state
   const [text, setText] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  
+  // Edit and delete state
+  const [showEditModal, setShowEditModal] = useState(false);
   
   // Practice functionality state
   const [practiceMode, setPracticeMode] = useState(false);
@@ -24,45 +29,84 @@ function TextPage() {
   const { textId } = useParams();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchText = async () => {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        navigate('/signin');
-        return;
-      }
+  const fetchText = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/signin');
+      return;
+    }
 
-      try {
-        setLoading(true);
-        const response = await fetch(`http://localhost:5000/api/text/${textId}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-
-        if (!response.ok) {
-          if (response.status === 401) {
-            localStorage.removeItem('token');
-            localStorage.removeItem('userId');
-            navigate('/signin');
-            return;
-          }
-          throw new Error('Failed to load text');
+    try {
+      setLoading(true);
+      const response = await fetch(`http://localhost:5000/api/text/${textId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
         }
+      });
 
-        const data = await response.json();
-        setText(data);
-      } catch (err) {
-        console.error('Error fetching text:', err);
-        setError('Failed to load the text. Please try again.');
-      } finally {
-        setLoading(false);
+      if (!response.ok) {
+        if (response.status === 401) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('userId');
+          navigate('/signin');
+          return;
+        }
+        throw new Error('Failed to load text');
       }
-    };
-  
+
+      const data = await response.json();
+      setText(data);
+    } catch (err) {
+      console.error('Error fetching text:', err);
+      setError('Failed to load the text. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchText();
   }, [textId, navigate]);
 
+  // Edit and Delete handlers
+  const handleEdit = () => {
+    setShowEditModal(true);
+  };
+
+  const handleEditModalClose = async (success = false) => {
+    setShowEditModal(false);
+    if (success) {
+      // Refresh the text data
+      fetchText();
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm('Are you sure you want to delete this text? This action cannot be undone.')) {
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/signin');
+      return;
+    }
+
+    try {
+      await axios.delete(`http://localhost:5000/api/text/${textId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      navigate('/home');
+    } catch (err) {
+      console.error('Error deleting text:', err);
+      setError('Failed to delete the text. Please try again.');
+    }
+  };
+
+  // Practice functionality handlers
   const handleCaseToggle = (caseName) => {
     setSelectedCases(prev => ({
       ...prev,
@@ -120,12 +164,11 @@ function TextPage() {
   const checkAnswer = async (wordId) => {
     try {
       const word = practiceWords[wordId];
-      // Log for debugging
       console.log('Checking word:', {
-        original: word.original,     // The word as it appears in text (declined form)
-        answer: userAnswers[wordId], // User's answer - should match original
-        nominative: word.nominative, // What we show in the placeholder
-        case: word.case,            // The case we're practicing
+        original: word.original,
+        answer: userAnswers[wordId],
+        nominative: word.nominative,
+        case: word.case,
       });
 
       const response = await fetch('http://localhost:5001/check', {
@@ -163,7 +206,6 @@ function TextPage() {
   const renderPracticeText = () => {
     if (!text?.content) return null;
 
-    // If no practice words, just show the original text
     if (!practiceWords.length) {
       return <p className="text-content">{text.content}</p>;
     }
@@ -173,14 +215,12 @@ function TextPage() {
     let lastIndex = 0;
 
     practiceWords.forEach((word, index) => {
-      // Add text before practice word
       elements.push(
         <span key={`text-${index}`}>
           {content.slice(lastIndex, word.position)}
         </span>
       );
 
-      // Add practice word component
       elements.push(
         <span key={`practice-${index}`} className="practice-word">
           <input
@@ -210,7 +250,6 @@ function TextPage() {
       lastIndex = word.position + word.length;
     });
 
-    // Add remaining text
     elements.push(
       <span key="text-end">
         {content.slice(lastIndex)}
@@ -266,12 +305,29 @@ function TextPage() {
     <div className="App">
       <div className="text-practice-container">
         <div className="text-header">
-          <button 
-            onClick={() => navigate('/home')} 
-            className="secondary-button"
-          >
-            ← Back to Home
-          </button>
+          <div className="text-header-actions">
+            <button 
+              onClick={() => navigate('/home')} 
+              className="secondary-button"
+            >
+              ← Back to Home
+            </button>
+            <div className="text-actions">
+              <button 
+                onClick={handleEdit}
+                className="secondary-button"
+              >
+                Edit
+              </button>
+              <button 
+                onClick={handleDelete}
+                className="secondary-button"
+                style={{ backgroundColor: 'var(--error)', color: 'white', borderColor: 'var(--error)' }}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
           <h1>{text.title}</h1>
         </div>
 
@@ -307,6 +363,7 @@ function TextPage() {
           </div>
         </div>
       </div>
+      {showEditModal && <EditTextModal text={text} closeModal={handleEditModalClose} />}
     </div>
   );
 }

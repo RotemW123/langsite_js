@@ -2,10 +2,13 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import TextModal from './TextModal';
+import EditTextModal from './EditTextModal';
 
 function HomePage() {
   const [texts, setTexts] = useState([]);
   const [showModal, setShowModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedText, setSelectedText] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
@@ -68,6 +71,48 @@ function HomePage() {
     }
   };
 
+  const handleEditClick = (text, e) => {
+    e.stopPropagation(); // Prevent triggering any parent onClick handlers
+    setSelectedText(text);
+    setShowEditModal(true);
+  };
+
+  const handleEditModalClose = async (success = false) => {
+    setShowEditModal(false);
+    setSelectedText(null);
+    if (success) {
+      await fetchTexts();
+    }
+  };
+
+  const handleDelete = async (textId, e) => {
+    e.stopPropagation(); // Prevent triggering any parent onClick handlers
+    
+    if (!window.confirm('Are you sure you want to delete this text? This action cannot be undone.')) {
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/signin');
+      return;
+    }
+
+    try {
+      await axios.delete(`http://localhost:5000/api/text/${textId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      // Refresh the texts list after deletion
+      await fetchTexts();
+    } catch (err) {
+      console.error('Error deleting text:', err);
+      setError('Failed to delete the text. Please try again.');
+    }
+  };
+
   if (loading) {
     return (
       <div className="App">
@@ -95,6 +140,9 @@ function HomePage() {
 
       {error && <p className="error-message">{error}</p>}
       {showModal && <TextModal closeModal={handleModalClose} />}
+      {showEditModal && selectedText && 
+        <EditTextModal text={selectedText} closeModal={handleEditModalClose} />
+      }
 
       <div className="text-grid">
         {texts.length > 0 ? (
@@ -102,13 +150,32 @@ function HomePage() {
             <div key={text._id} className="text-card">
               <h3>{text.title}</h3>
               <p>{text.content.substring(0, 100)}...</p>
-              <button 
-                onClick={() => navigate(`/text/${text._id}`)}
-                className="secondary-button"
-                style={{ marginTop: '1rem' }}
-              >
-                Read More
-              </button>
+              <div className="text-card-actions">
+                <button 
+                  onClick={() => navigate(`/text/${text._id}`)}
+                  className="secondary-button"
+                >
+                  Read More
+                </button>
+                <button 
+                  onClick={(e) => handleEditClick(text, e)}
+                  className="secondary-button"
+                >
+                  Edit
+                </button>
+                <button 
+                  onClick={(e) => handleDelete(text._id, e)}
+                  className="secondary-button"
+                  style={{ 
+                    backgroundColor: 'var(--error)', 
+                    color: 'white', 
+                    borderColor: 'var(--error)',
+                    opacity: 0.9,
+                  }}
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           ))
         ) : (
