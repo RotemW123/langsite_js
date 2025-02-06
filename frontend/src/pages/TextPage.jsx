@@ -1,13 +1,19 @@
-import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import EditTextModal from './EditTextModal';
+import { useParams } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import EditTextModal from "./EditTextModal";
 
-function TextPage() {
+const CHUNKS_PER_PAGE = 5;
+function TextPage() {  // Remove the { textId } prop
+  const { textId } = useParams();
   // Original state
-  const [text, setText] = useState(null);
+  const [title, setTitle] = useState('');
+  const [chunks, setChunks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
   
   // Edit and delete state
   const [showEditModal, setShowEditModal] = useState(false);
@@ -26,47 +32,66 @@ function TextPage() {
     prepositional: false
   });
 
-  const { textId } = useParams();
-  const navigate = useNavigate();
-
-  const fetchText = async () => {
-    const token = localStorage.getItem('token');
+  const fetchChunks = async (page) => {
+    const token = localStorage.getItem('token'); // Add this line at the start of the function
     if (!token) {
-      navigate('/signin');
+      window.location.href = '/signin';
       return;
     }
-
+  
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:5000/api/text/${textId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
+      const response = await fetch(
+        `http://localhost:5000/api/text/${textId}/chunks?page=${page}&limit=${CHUNKS_PER_PAGE}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
         }
-      });
-
+      );
+  
       if (!response.ok) {
         if (response.status === 401) {
           localStorage.removeItem('token');
           localStorage.removeItem('userId');
-          navigate('/signin');
+          window.location.href = '/signin';
           return;
         }
-        throw new Error('Failed to load text');
+        throw new Error('Failed to fetch chunks');
       }
-
+  
       const data = await response.json();
-      setText(data);
+      console.log("Received chunks data:", data);  // Add this to debug
+  
+      if (page === 0) {
+        setChunks(data.chunks);
+        setTitle(data.title);
+      } else {
+        setChunks(prev => [...prev, ...data.chunks]);
+      }
+  
+      setHasMore(data.hasMore);
+      setCurrentPage(data.currentPage);
     } catch (err) {
-      console.error('Error fetching text:', err);
-      setError('Failed to load the text. Please try again.');
+      console.error('Error fetching chunks:', err);
+      setError('Failed to load text chunks');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchText();
-  }, [textId, navigate]);
+    fetchChunks(0);
+  }, [textId]);
+
+  const handleLoadMore = () => {
+    if (!hasMore || loading) return;
+    fetchChunks(currentPage + 1);
+  };
+
+  const getFullText = () => {
+    return chunks.map(chunk => chunk.content).join('');
+  };
 
   // Edit and Delete handlers
   const handleEdit = () => {
@@ -77,7 +102,7 @@ function TextPage() {
     setShowEditModal(false);
     if (success) {
       // Refresh the text data
-      fetchText();
+      fetchChunks(0);
     }
   };
 
@@ -88,18 +113,20 @@ function TextPage() {
 
     const token = localStorage.getItem('token');
     if (!token) {
-      navigate('/signin');
+      window.location.href = '/signin';
       return;
     }
 
     try {
-      await axios.delete(`http://localhost:5000/api/text/${textId}`, {
+      const response = await fetch(`http://localhost:5000/api/text/${textId}`, {
+        method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
 
-      navigate('/home');
+      if (!response.ok) throw new Error('Failed to delete text');
+      window.location.href = '/home';
     } catch (err) {
       console.error('Error deleting text:', err);
       setError('Failed to delete the text. Please try again.');
@@ -126,13 +153,14 @@ function TextPage() {
 
     try {
       setLoading(true);
+      const visibleText = getFullText();
       const response = await fetch('http://localhost:5001/analyze', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          text: text.content,
+          text: visibleText,
           cases: selectedCasesList
         })
       });
@@ -164,13 +192,6 @@ function TextPage() {
   const checkAnswer = async (wordId) => {
     try {
       const word = practiceWords[wordId];
-      console.log('Checking word:', {
-        original: word.original,
-        answer: userAnswers[wordId],
-        nominative: word.nominative,
-        case: word.case,
-      });
-
       const response = await fetch('http://localhost:5001/check', {
         method: 'POST',
         headers: {
@@ -188,8 +209,6 @@ function TextPage() {
       }
 
       const data = await response.json();
-      console.log('Server response:', data);
-
       setFeedback(prev => ({
         ...prev,
         [wordId]: data
@@ -204,20 +223,16 @@ function TextPage() {
   };
 
   const renderPracticeText = () => {
-    if (!text?.content) return null;
+    if (!chunks.length) return null;
 
-    if (!practiceWords.length) {
-      return <p className="text-content">{text.content}</p>;
-    }
-
-    let content = text.content;
+    const fullText = getFullText();
     const elements = [];
     let lastIndex = 0;
 
     practiceWords.forEach((word, index) => {
       elements.push(
         <span key={`text-${index}`}>
-          {content.slice(lastIndex, word.position)}
+          {fullText.slice(lastIndex, word.position)}
         </span>
       );
 
@@ -252,118 +267,115 @@ function TextPage() {
 
     elements.push(
       <span key="text-end">
-        {content.slice(lastIndex)}
+        {fullText.slice(lastIndex)}
       </span>
     );
 
     return <div className="practice-text">{elements}</div>;
   };
 
-  if (loading) {
+  if (loading && chunks.length === 0) {
     return (
-      <div className="App">
-        <div className="loading-spinner">
-          Loading...
-        </div>
+      <div className="loading-spinner">
+        Loading...
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="App">
-        <div className="error-container">
-          <p className="error-message">{error}</p>
-          <button 
-            onClick={() => navigate('/home')} 
-            className="secondary-button"
-          >
-            Back to Home
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (!text) {
-    return (
-      <div className="App">
-        <div className="error-container">
-          <h2>Text Not Found</h2>
-          <button 
-            onClick={() => navigate('/home')} 
-            className="secondary-button"
-          >
-            Back to Home
-          </button>
-        </div>
+      <div className="error-container">
+        <div className="error-message">{error}</div>
+        <button 
+          onClick={() => window.location.href = '/home'} 
+          className="secondary-button"
+        >
+          Back to Home
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="App">
-      <div className="text-practice-container">
-        <div className="text-header">
-          <div className="text-header-actions">
+    <div className="text-practice-container">
+      <div className="text-header">
+        <div className="text-header-actions">
+          <button 
+            onClick={() => window.location.href = '/home'} 
+            className="secondary-button"
+          >
+            ← Back to Home
+          </button>
+          <div className="text-actions">
             <button 
-              onClick={() => navigate('/home')} 
+              onClick={handleEdit}
               className="secondary-button"
             >
-              ← Back to Home
+              Edit
             </button>
-            <div className="text-actions">
-              <button 
-                onClick={handleEdit}
-                className="secondary-button"
-              >
-                Edit
-              </button>
-              <button 
-                onClick={handleDelete}
-                className="secondary-button"
-                style={{ backgroundColor: 'var(--error)', color: 'white', borderColor: 'var(--error)' }}
-              >
-                Delete
-              </button>
-            </div>
+            <button 
+              onClick={handleDelete}
+              className="secondary-button"
+              style={{ backgroundColor: 'var(--error)', color: 'white', borderColor: 'var(--error)' }}
+            >
+              Delete
+            </button>
           </div>
-          <h1>{text.title}</h1>
+        </div>
+        <h1>{title}</h1>
+      </div>
+
+      <div className="text-practice-layout">
+        {/* Text content */}
+        <div className="text-content">
+          {practiceMode ? renderPracticeText() : (
+            <>
+              {chunks.map((chunk, index) => (
+                <div key={index} className="mb-4">
+                  {chunk.content}
+                </div>
+              ))}
+              {hasMore && (
+                <div className="mt-6 text-center">
+                  <button
+                    onClick={handleLoadMore}
+                    disabled={loading}
+                    className="primary-button"
+                  >
+                    {loading ? 'Loading...' : 'Load More'}
+                  </button>
+                </div>
+              )}
+            </>
+          )}
         </div>
 
-        <div className="text-practice-layout">
-          {/* Text content */}
-          <div className="text-content">
-            {practiceMode ? renderPracticeText() : <p>{text.content}</p>}
+        {/* Practice panel */}
+        <div className="practice-panel">
+          <h3>Russian Grammar Cases</h3>
+          <div className="cases-grid">
+            {Object.entries(selectedCases).map(([caseName, isSelected]) => (
+              <label key={caseName} className="case-checkbox">
+                <input
+                  type="checkbox"
+                  checked={isSelected}
+                  onChange={() => handleCaseToggle(caseName)}
+                  disabled={practiceMode}
+                />
+                {caseName.charAt(0).toUpperCase() + caseName.slice(1)}
+              </label>
+            ))}
           </div>
-
-          {/* Practice panel */}
-          <div className="practice-panel">
-            <h3>Russian Grammar Cases</h3>
-            <div className="cases-grid">
-              {Object.entries(selectedCases).map(([caseName, isSelected]) => (
-                <label key={caseName} className="case-checkbox">
-                  <input
-                    type="checkbox"
-                    checked={isSelected}
-                    onChange={() => handleCaseToggle(caseName)}
-                    disabled={practiceMode}
-                  />
-                  {caseName.charAt(0).toUpperCase() + caseName.slice(1)}
-                </label>
-              ))}
-            </div>
-            <button 
-              onClick={practiceMode ? () => setPracticeMode(false) : handlePracticeClick}
-              className="primary-button practice-button"
-              disabled={!practiceMode && !Object.values(selectedCases).some(Boolean)}
-            >
-              {practiceMode ? 'Exit Practice Mode' : 'Practice Selected Cases'}
-            </button>
-          </div>
+          <button 
+            onClick={practiceMode ? () => setPracticeMode(false) : handlePracticeClick}
+            className="primary-button practice-button"
+            disabled={!practiceMode && !Object.values(selectedCases).some(Boolean)}
+          >
+            {practiceMode ? 'Exit Practice Mode' : 'Practice Selected Cases'}
+          </button>
         </div>
       </div>
-      {showEditModal && <EditTextModal text={text} closeModal={handleEditModalClose} />}
+      {showEditModal && <EditTextModal text={{ _id: textId, title, content: getFullText() }} closeModal={handleEditModalClose} />}
     </div>
   );
 }

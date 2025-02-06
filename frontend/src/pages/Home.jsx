@@ -149,7 +149,7 @@ function HomePage() {
           texts.map((text) => (
             <div key={text._id} className="text-card">
               <h3>{text.title}</h3>
-              <p>{text.content.substring(0, 100)}...</p>
+              <p>{text.chunks && text.chunks[0] ? text.chunks[0].content.substring(0, 100) : ''}...</p>
               <div className="text-card-actions">
                 <button 
                   onClick={() => navigate(`/text/${text._id}`)}
