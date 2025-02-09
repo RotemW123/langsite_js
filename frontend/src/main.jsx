@@ -5,6 +5,8 @@ import App from "./App";
 import Home from "./pages/Home";
 import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
+import LanguageSelection from "./components/LanguageSelection";
+import LanguageHome from "./pages/LanguageHome";
 import TextPage from "./pages/TextPage";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
@@ -13,8 +15,9 @@ ReactDOM.createRoot(document.getElementById("root")).render(
       <Route path="/" element={<App />} />
       <Route path="/signin" element={<SignIn />} />
       <Route path="/signup" element={<SignUp />} />
-      <Route path="/home" element={<Home />} />
-      <Route path="/text/:textId" element={<TextPage />} />
+      <Route path="/language-selection" element={<LanguageSelection />} />
+      <Route path="/home/:languageId" element={<LanguageHome />} />
+      <Route path="/text/:languageId/:textId" element={<TextPage />} />
     </Routes>
   </BrowserRouter>
 );

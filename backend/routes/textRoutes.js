@@ -3,9 +3,10 @@ const Text = require('../models/Text');
 const authMiddleware = require('../middleware/authMiddleware');
 const router = express.Router();
 
-// Upload new text
-router.post("/upload", authMiddleware, async (req, res) => {
+// Upload new text with language
+router.post("/:languageId/upload", authMiddleware, async (req, res) => {
   const { title, content } = req.body;
+  const { languageId } = req.params;
   const userId = req.user.id;
 
   if (!title || !content) {
@@ -13,38 +14,37 @@ router.post("/upload", authMiddleware, async (req, res) => {
   }
 
   try {
-    // Chunk the content
     const { chunks, totalChunks } = Text.chunkContent(content);
-    console.log('Created chunks:', { totalChunks, firstChunk: chunks[0] }); // Add this
     
     const newText = new Text({
       userId,
+      languageId,
       title,
       chunks,
       totalChunks
     });
     
     const savedText = await newText.save();
-    console.log('Saved text:', savedText); // Add this
     
     res.status(201).json({ 
       message: 'Text saved successfully',
-      textId: newText._id,
+      textId: savedText._id,
       totalChunks
     });
   } catch (error) {
-    console.error(error);
+    console.error('Error saving text:', error);
     res.status(500).json({ message: 'Error saving text' });
   }
 });
 
-// Get user's texts
-router.get('/mytexts', authMiddleware, async (req, res) => {
+// Get user's texts for specific language
+router.get('/:languageId/mytexts', authMiddleware, async (req, res) => {
   const userId = req.user.id;
+  const { languageId } = req.params;
 
   try {
     const texts = await Text.find(
-      { userId },
+      { userId, languageId },
       {
         title: 1,
         'chunks.content': { $slice: 1 }, // Only get first chunk for preview
@@ -53,22 +53,23 @@ router.get('/mytexts', authMiddleware, async (req, res) => {
     );
     res.json(texts);
   } catch (error) {
-    console.error(error);
+    console.error('Error retrieving texts:', error);
     res.status(500).json({ message: 'Error retrieving texts' });
   }
 });
 
-// Get single text
-router.get('/:id', authMiddleware, async (req, res) => {
+// Get single text (with language verification)
+router.get('/:languageId/:textId', authMiddleware, async (req, res) => {
   try {
-    const text = await Text.findById(req.params.id);
+    const { languageId, textId } = req.params;
+    const text = await Text.findOne({
+      _id: textId,
+      languageId,
+      userId: req.user.id
+    });
       
     if (!text) {
       return res.status(404).json({ message: 'Text not found' });
-    }
-
-    if (text.userId.toString() !== req.user.id) {
-      return res.status(403).json({ message: 'Not authorized to view this text' });
     }
 
     res.json(text);
@@ -78,21 +79,26 @@ router.get('/:id', authMiddleware, async (req, res) => {
   }
 });
 
-
-router.get('/:id/chunks', authMiddleware, async (req, res) => {
+// Get text chunks with language
+router.get('/:languageId/:textId/chunks', authMiddleware, async (req, res) => {
   try {
-    const { id } = req.params;
+    const { languageId, textId } = req.params;
     const { page = 0, limit = 5 } = req.query;
     const pageNum = parseInt(page);
     const limitNum = parseInt(limit);
 
-    const text = await Text.findOne(
-      { _id: id, userId: req.user.id }
-    );
-    // console.log('Found text:', text); // Add this to see the full text object
+    const text = await Text.findOne({
+      _id: textId,
+      languageId,
+      userId: req.user.id
+    });
+
+    if (!text) {
+      return res.status(404).json({ message: 'Text not found' });
+    }
 
     const paginatedText = await Text.findOne(
-      { _id: id, userId: req.user.id },
+      { _id: textId, userId: req.user.id },
       {
         title: 1,
         totalChunks: 1,
@@ -102,19 +108,15 @@ router.get('/:id/chunks', authMiddleware, async (req, res) => {
       }
     );
 
-    if (!text) {
-      return res.status(404).json({ message: 'Text not found' });
-    }
-
     const response = {
       textId: text._id,
+      languageId,
       title: text.title,
       chunks: text.chunks,
       totalChunks: text.totalChunks,
       currentPage: pageNum,
       hasMore: (pageNum + 1) * limitNum < text.totalChunks
     };
-    console.log('Sending response:', response); // Add this
 
     res.json(response);
   } catch (error) {
@@ -123,21 +125,23 @@ router.get('/:id/chunks', authMiddleware, async (req, res) => {
   }
 });
 
-
-
-router.put('/:id', authMiddleware, async (req, res) => {
+// Update text with language
+router.put('/:languageId/:textId', authMiddleware, async (req, res) => {
   const { title, content } = req.body;
-  const textId = req.params.id;
+  const { languageId, textId } = req.params;
   const userId = req.user.id;
 
   try {
-    const text = await Text.findOne({ _id: textId, userId });
+    const text = await Text.findOne({ 
+      _id: textId, 
+      languageId, 
+      userId 
+    });
     
     if (!text) {
       return res.status(404).json({ message: 'Text not found' });
     }
 
-    // Chunk the new content
     const { chunks, totalChunks } = Text.chunkContent(content);
     
     const updatedText = await Text.findByIdAndUpdate(
@@ -160,26 +164,23 @@ router.put('/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// Delete text
-router.delete('/:id', authMiddleware, async (req, res) => {
-  const textId = req.params.id;
+// Delete text with language verification
+router.delete('/:languageId/:textId', authMiddleware, async (req, res) => {
+  const { languageId, textId } = req.params;
   const userId = req.user.id;
 
   try {
-    // First find the text and check ownership
-    const text = await Text.findById(textId);
+    const text = await Text.findOne({ 
+      _id: textId, 
+      languageId, 
+      userId 
+    });
     
     if (!text) {
       return res.status(404).json({ message: 'Text not found' });
     }
 
-    if (text.userId.toString() !== userId) {
-      return res.status(403).json({ message: 'Not authorized to delete this text' });
-    }
-
-    // Delete the text
     await Text.findByIdAndDelete(textId);
-
     res.json({ message: 'Text deleted successfully' });
   } catch (error) {
     console.error('Error deleting text:', error);
