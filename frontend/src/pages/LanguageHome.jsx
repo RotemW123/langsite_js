@@ -24,6 +24,7 @@ const LanguageHome = () => {
 
   const fetchTexts = async () => {
     const token = localStorage.getItem('token');
+    console.log("Fetching texts with token:", token); // Debug log
     
     if (!token) {
       window.location.href = '/signin';
@@ -32,25 +33,35 @@ const LanguageHome = () => {
 
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:5000/api/text/${languageId}/mytexts`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
+      const response = await fetch(
+        `http://localhost:5000/api/text/${languageId}/mytexts`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
         }
-      });
+      );
       
       if (!response.ok) {
+        if (response.status === 401) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('userId');
+          window.location.href = '/signin';
+          throw new Error('Authentication expired. Please sign in again.');
+        }
         throw new Error('Failed to fetch texts');
       }
       
       const data = await response.json();
+      console.log("Fetched texts:", data); // Debug log
       setTexts(data);
       setError('');
     } catch (err) {
       console.error('Error fetching texts:', err);
       setError('Failed to load texts');
-      if (err.response?.status === 401) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('userId');
+      if (err.message.includes('Authentication expired')) {
         window.location.href = '/signin';
       }
     } finally {
@@ -66,6 +77,7 @@ const LanguageHome = () => {
       fetchTexts();
     }
   }, [languageId]);
+
 
   const handleAddTextClick = () => {
     setShowModal(true);
