@@ -2,13 +2,12 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const mongoose = require('mongoose');
-const authRoutes = require("./routes/auth");  // Correct import for auth routes
-const textRoutes = require('./routes/textRoutes'); // Add text routes
+const authRoutes = require("./routes/auth");
+const textRoutes = require('./routes/textRoutes');
 
+dotenv.config();
 
-dotenv.config();  // Load environment variables from .env file
-
-const app = express(); // Initialize app here
+const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
@@ -17,8 +16,8 @@ app.use(express.json({limit: '50mb'}));
 app.use(express.urlencoded({limit: '50mb', extended: true}));
 
 // Routes
-app.use("/api/auth", authRoutes);  // Register auth routes
-app.use('/api/text', textRoutes); // Register the text routes
+app.use("/api/auth", authRoutes);
+app.use('/api/text', textRoutes); // The textRoutes now handle language-specific endpoints
 
 // Sample API route
 app.get('/', (req, res) => {

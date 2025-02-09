@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
 
 const SignIn = () => {
   const [email, setEmail] = useState("");
@@ -7,7 +6,6 @@ const SignIn = () => {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -36,8 +34,9 @@ const SignIn = () => {
         console.log("Token and userId stored successfully");
         setMessage("Login successful!");
         
+        // Changed navigation to language-selection instead of home
         setTimeout(() => {
-          navigate("/home");
+          window.location.href = "/language-selection";
         }, 100);
       } else {
         setError(data.message || "Login failed - Missing token or user data");

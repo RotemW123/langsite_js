@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
-import axios from 'axios';
-import '../styles/modal.css';
 
-function EditTextModal({ text, closeModal }) {
+const EditTextModal = ({ text, languageId, closeModal }) => {
   const [title, setTitle] = useState(text.title);
   const [content, setContent] = useState(text.content);
   const [error, setError] = useState('');
@@ -21,15 +19,21 @@ function EditTextModal({ text, closeModal }) {
     }
 
     try {
-      await axios.put(
-        `http://localhost:5000/api/text/${text._id}`,
-        { title, content },
+      const response = await fetch(
+        `http://localhost:5000/api/text/${languageId}/${text._id}`,
         {
+          method: 'PUT',
           headers: {
-            'Authorization': `Bearer ${token}`
-          }
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ title, content })
         }
       );
+
+      if (!response.ok) {
+        throw new Error('Failed to update text');
+      }
       
       closeModal(true);
     } catch (err) {
@@ -40,43 +44,50 @@ function EditTextModal({ text, closeModal }) {
   };
 
   return (
-    <div className="modal">
-      <div className="modal-content">
-        <h2 style={{ marginBottom: '1.5rem' }}>Edit Text</h2>
-        <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: '1rem' }}>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-lg p-6 w-full max-w-2xl">
+        <h2 className="text-2xl font-bold mb-6">Edit Text</h2>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
             <input
               type="text"
               placeholder="Enter title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               disabled={isSubmitting}
+              className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
               required
             />
           </div>
-          <div style={{ marginBottom: '1rem' }}>
+          
+          <div>
             <textarea
               placeholder="Write your text here..."
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              style={{ height: '200px', resize: 'vertical' }}
+              className="w-full h-64 p-2 border rounded-lg resize-none focus:ring-2 focus:ring-indigo-500"
               disabled={isSubmitting}
               required
             />
           </div>
-          {error && <p className="error-message">{error}</p>}
-          <div className="modal-buttons">
+          
+          {error && (
+            <p className="text-red-500 text-sm">{error}</p>
+          )}
+          
+          <div className="flex justify-end gap-4">
             <button
               type="button"
               onClick={() => closeModal(false)}
-              className="secondary-button"
+              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
               disabled={isSubmitting}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="primary-button"
+              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
               disabled={isSubmitting}
             >
               {isSubmitting ? 'Saving...' : 'Save Changes'}
@@ -86,6 +97,6 @@ function EditTextModal({ text, closeModal }) {
       </div>
     </div>
   );
-}
+};
 
 export default EditTextModal;

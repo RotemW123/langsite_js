@@ -1,42 +1,39 @@
-import { useParams } from 'react-router-dom';
-import React, { useState, useEffect } from "react";
-import EditTextModal from "./EditTextModal";
+import React, { useState, useEffect } from 'react';
+import EditTextModal from '../components/EditTextModal';
+import GrammarPanel from '../components/GrammarPanel';
 
-const CHUNKS_PER_PAGE = 1;
-function TextPage() {  // Remove the { textId } prop
-  const [visibleChunks, setVisibleChunks] = useState([])
-  const [analyzedText, setAnalyzedText] = useState('');
-  const [practiceLoading, setPracticeLoading] = useState(false)
-  const { textId } = useParams();
-  // Original state
+const TextPage = () => {
+  // Get IDs from URL
+  const pathParts = window.location.pathname.split('/');
+  const languageId = pathParts[2];
+  const textId = pathParts[3];
+
+  // State for text content
   const [title, setTitle] = useState('');
   const [chunks, setChunks] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  
-  // Pagination state
+  const [visibleChunks, setVisibleChunks] = useState([]);
   const [currentPage, setCurrentPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
-  
-  // Edit and delete state
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [showEditModal, setShowEditModal] = useState(false);
 
-  const [analyzedChunks, setAnalyzedChunks] = useState(new Set()); // Track which chunks have been analyzed
-
-  
-  // Practice functionality state
+  // Practice state
+  const [selectedFeatures, setSelectedFeatures] = useState({});
   const [practiceMode, setPracticeMode] = useState(false);
   const [practiceWords, setPracticeWords] = useState([]);
   const [userAnswers, setUserAnswers] = useState({});
   const [feedback, setFeedback] = useState({});
-  const [selectedCases, setSelectedCases] = useState({
-    nominative: false,
-    accusative: false,
-    genitive: false,
-    dative: false,
-    instrumental: false,
-    prepositional: false
-  });
+  const [practiceLoading, setPracticeLoading] = useState(false);
+
+  // Language names mapping
+  const languageNames = {
+    russian: 'Russian',
+    spanish: 'Spanish',
+    french: 'French',
+    hebrew: 'Hebrew',
+    german: 'German'
+  };
 
   const fetchChunks = async (page) => {
     const token = localStorage.getItem('token');
@@ -48,7 +45,7 @@ function TextPage() {  // Remove the { textId } prop
     try {
       setLoading(true);
       const response = await fetch(
-        `http://localhost:5000/api/text/${textId}/chunks?page=${page}&limit=${CHUNKS_PER_PAGE}`,
+        `http://localhost:5000/api/text/${languageId}/${textId}/chunks?page=${page}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -63,21 +60,16 @@ function TextPage() {  // Remove the { textId } prop
       const data = await response.json();
       
       if (page === 0) {
-        setChunks([data.chunks[0]]); // Only set first chunk
+        setChunks([data.chunks[0]]);
         setVisibleChunks([data.chunks[0]]);
         setTitle(data.title);
       } else {
-        const nextChunk = data.chunks[0]; // Get only one new chunk
+        const nextChunk = data.chunks[0];
         setChunks(prev => [...prev, nextChunk]);
-        if (practiceMode) {
-          // In practice mode, wait for analysis before showing
-          await analyzeAndAddChunk(nextChunk);
-        } else {
-          setVisibleChunks(prev => [...prev, nextChunk]);
-        }
+        setVisibleChunks(prev => [...prev, nextChunk]);
       }
 
-      setHasMore(currentPage + 1 < data.totalChunks);
+      setHasMore(data.hasMore);
       setCurrentPage(data.currentPage);
     } catch (err) {
       console.error('Error fetching chunks:', err);
@@ -87,242 +79,48 @@ function TextPage() {  // Remove the { textId } prop
     }
   };
 
-  const analyzeAndAddChunk = async (chunk) => {
-    setPracticeLoading(true);
-    try {
-      const selectedCasesList = Object.entries(selectedCases)
-        .filter(([_, isSelected]) => isSelected)
-        .map(([caseName]) => caseName);
-
-      const response = await fetch('http://localhost:5001/analyze', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          text: chunk.content,
-          cases: selectedCasesList
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to analyze chunk');
-      }
-
-      const data = await response.json();
-      
-      // Adjust word positions based on previous chunks
-      const offset = visibleChunks.reduce((acc, c) => acc + c.content.length, 0);
-      const adjustedWords = data.words.map(word => ({
-        ...word,
-        position: word.position + offset
-      }));
-
-      setPracticeWords(prev => [...prev, ...adjustedWords]);
-      setVisibleChunks(prev => [...prev, chunk]);
-    } catch (err) {
-      console.error('Error analyzing chunk:', err);
-      setError('Failed to analyze text chunk');
-    } finally {
-      setPracticeLoading(false);
-    }
-  };
-
   useEffect(() => {
     fetchChunks(0);
-  }, [textId]);
+  }, [languageId, textId]);
 
-  const handleLoadMore = async () => {
-    if (!hasMore || loading) return;
-    const nextPage = currentPage + 1;
-    await fetchChunks(nextPage);
-    
-    if (practiceMode) {
-      // Analyze new chunks
-      try {
-        setPracticeLoading(true);
-        const newChunks = chunks.slice(nextPage * CHUNKS_PER_PAGE, (nextPage + 1) * CHUNKS_PER_PAGE);
-        const newText = newChunks.map(chunk => chunk.content).join('');
-        
-        // Skip if this text was already analyzed
-        if (analyzedText.includes(newText)) {
-          return;
-        }
-        
-        const selectedCasesList = Object.entries(selectedCases)
-          .filter(([_, isSelected]) => isSelected)
-          .map(([caseName]) => caseName);
-
-        const response = await fetch('http://localhost:5001/analyze', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            text: newText,
-            cases: selectedCasesList
-          })
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to analyze new chunks');
-        }
-
-        const data = await response.json();
-        
-        // Adjust positions for new words
-        const offset = analyzedText.length;
-        const newWords = data.words.map(word => ({
-          ...word,
-          position: word.position + offset
-        }));
-
-        setPracticeWords(prev => [...prev, ...newWords]);
-        setAnalyzedText(prev => prev + newText);
-      } catch (err) {
-        console.error('Error analyzing new chunks:', err);
-        setError('Failed to analyze new text chunks');
-      } finally {
-        setPracticeLoading(false);
-      }
-    }
-  };
-
-
-  const analyzeNewChunks = async () => {
-    const selectedCasesList = Object.entries(selectedCases)
-      .filter(([_, isSelected]) => isSelected)
-      .map(([caseName]) => caseName);
-
-    // Get only unanalyzed chunks
-    const newChunks = chunks.filter((_, index) => !analyzedChunks.has(index));
-    if (newChunks.length === 0) return;
-
-    try {
-      setPracticeLoading(true);
-      const newText = newChunks.map(chunk => chunk.content).join('');
-
-      const response = await fetch('http://localhost:5001/analyze', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          text: newText,
-          cases: selectedCasesList
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to analyze text');
-      }
-
-      const data = await response.json();
-      
-      // Adjust word positions to account for previous chunks
-      const offset = chunks
-        .slice(0, chunks.length - newChunks.length)
-        .reduce((acc, chunk) => acc + chunk.content.length, 0);
-
-      const adjustedWords = data.words.map(word => ({
-        ...word,
-        position: word.position + offset
-      }));
-
-      // Merge new words with existing ones
-      setPracticeWords(prev => [...prev, ...adjustedWords]);
-      
-      // Mark these chunks as analyzed
-      setAnalyzedChunks(prev => {
-        const newSet = new Set(prev);
-        newChunks.forEach((_, index) => newSet.add(chunks.length - newChunks.length + index));
-        return newSet;
-      });
-
-    } catch (err) {
-      console.error('Error analyzing new chunks:', err);
-      setError('Failed to analyze new text chunks');
-    } finally {
-      setPracticeLoading(false);
-    }
-  };
-
-
-  const getFullText = () => {
-    return chunks.map(chunk => chunk.content).join('');
-  };
-
-  // Edit and Delete handlers
-  const handleEdit = () => {
-    setShowEditModal(true);
-  };
-
-  const handleEditModalClose = async (success = false) => {
-    setShowEditModal(false);
-    if (success) {
-      // Refresh the text data
-      fetchChunks(0);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!window.confirm('Are you sure you want to delete this text? This action cannot be undone.')) {
-      return;
-    }
-
-    const token = localStorage.getItem('token');
-    if (!token) {
-      window.location.href = '/signin';
-      return;
-    }
-
-    try {
-      const response = await fetch(`http://localhost:5000/api/text/${textId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) throw new Error('Failed to delete text');
-      window.location.href = '/home';
-    } catch (err) {
-      console.error('Error deleting text:', err);
-      setError('Failed to delete the text. Please try again.');
-    }
-  };
-
-  // Practice functionality handlers
-  const handleCaseToggle = (caseName) => {
-    setSelectedCases(prev => ({
+  const handleFeatureToggle = (featureId) => {
+    setSelectedFeatures(prev => ({
       ...prev,
-      [caseName]: !prev[caseName]
+      [featureId]: !prev[featureId]
     }));
   };
 
   const handlePracticeClick = async () => {
-    const selectedCasesList = Object.entries(selectedCases)
-      .filter(([_, isSelected]) => isSelected)
-      .map(([caseName]) => caseName);
+    if (practiceMode) {
+      setPracticeMode(false);
+      setPracticeWords([]);
+      setUserAnswers({});
+      setFeedback({});
+      setVisibleChunks(chunks); // Restore all chunks when exiting practice mode
+      return;
+    }
 
-    if (selectedCasesList.length === 0) {
-      alert('Please select at least one grammatical case to practice');
+    const selectedFeaturesList = Object.entries(selectedFeatures)
+      .filter(([_, isSelected]) => isSelected)
+      .map(([featureId]) => featureId);
+
+    if (selectedFeaturesList.length === 0) {
+      alert('Please select at least one grammar feature to practice');
       return;
     }
 
     try {
       setPracticeLoading(true);
-      // Reset visible chunks and practice words
-      setVisibleChunks([chunks[0]]);
+      setVisibleChunks([chunks[0]]); // Start with first chunk in practice mode
       
-      const response = await fetch('http://localhost:5001/analyze', {
+      const response = await fetch(`http://localhost:5001/analyze/${languageId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           text: chunks[0].content,
-          cases: selectedCasesList
+          features: selectedFeaturesList
         })
       });
 
@@ -332,8 +130,6 @@ function TextPage() {  // Remove the { textId } prop
 
       const data = await response.json();
       setPracticeWords(data.words);
-      setUserAnswers({});
-      setFeedback({});
       setPracticeMode(true);
     } catch (err) {
       console.error('Error starting practice:', err);
@@ -343,18 +139,15 @@ function TextPage() {  // Remove the { textId } prop
     }
   };
 
-
-  const handleAnswerChange = (wordId, value) => {
-    setUserAnswers(prev => ({
-      ...prev,
-      [wordId]: value
-    }));
+  const handleLoadMore = async () => {
+    if (!hasMore || loading) return;
+    await fetchChunks(currentPage + 1);
   };
 
-  const checkAnswer = async (wordId) => {
+  const handleAnswerCheck = async (wordId) => {
     try {
       const word = practiceWords[wordId];
-      const response = await fetch('http://localhost:5001/check', {
+      const response = await fetch(`http://localhost:5001/check/${languageId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -362,7 +155,7 @@ function TextPage() {  // Remove the { textId } prop
         body: JSON.stringify({
           original: word.original,
           answer: userAnswers[wordId],
-          case: word.case
+          feature: word.feature
         })
       });
 
@@ -385,39 +178,44 @@ function TextPage() {  // Remove the { textId } prop
   };
 
   const renderPracticeText = () => {
-    if (!chunks.length) return null;
+    if (!visibleChunks.length) return null;
 
-    const fullText = getFullText();
+    const fullText = visibleChunks.map(chunk => chunk.content).join('');
     const elements = [];
     let lastIndex = 0;
 
     practiceWords.forEach((word, index) => {
+      // Add text before the practice word
       elements.push(
         <span key={`text-${index}`}>
           {fullText.slice(lastIndex, word.position)}
         </span>
       );
 
+      // Add practice word with input
       elements.push(
-        <span key={`practice-${index}`} className="practice-word">
+        <span key={`practice-${index}`} className="inline-flex items-center gap-2">
           <input
             type="text"
             value={userAnswers[index] || ''}
-            onChange={(e) => handleAnswerChange(index, e.target.value)}
-            placeholder={word.nominative}
-            className={`practice-input ${
-              feedback[index]?.correct ? 'correct' : 
-              feedback[index]?.correct === false ? 'incorrect' : ''
-            }`}
+            onChange={(e) => setUserAnswers(prev => ({
+              ...prev,
+              [index]: e.target.value
+            }))}
+            className={`w-32 px-2 py-1 border rounded focus:ring-2 focus:ring-indigo-500 
+              ${feedback[index]?.correct ? 'border-green-500 bg-green-50' : 
+                feedback[index]?.correct === false ? 'border-red-500 bg-red-50' : 
+                'border-gray-300'}`}
+            placeholder={word.original}
           />
-          <button 
-            onClick={() => checkAnswer(index)}
-            className="check-button secondary-button"
+          <button
+            onClick={() => handleAnswerCheck(index)}
+            className="px-2 py-1 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700"
           >
             Check
           </button>
           {feedback[index] && (
-            <span className={`feedback ${feedback[index].correct ? 'correct' : 'incorrect'}`}>
+            <span className={`text-sm ${feedback[index].correct ? 'text-green-600' : 'text-red-600'}`}>
               {feedback[index].message}
             </span>
           )}
@@ -427,133 +225,103 @@ function TextPage() {  // Remove the { textId } prop
       lastIndex = word.position + word.length;
     });
 
+    // Add remaining text
     elements.push(
       <span key="text-end">
         {fullText.slice(lastIndex)}
       </span>
     );
 
-    return <div className="practice-text">{elements}</div>;
+    return <div className="space-y-4">{elements}</div>;
   };
 
   if (loading && chunks.length === 0) {
     return (
-      <div className="loading-spinner">
-        Loading...
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="error-container">
-        <div className="error-message">{error}</div>
-        <button 
-          onClick={() => window.location.href = '/home'} 
-          className="secondary-button"
-        >
-          Back to Home
-        </button>
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="text-xl text-indigo-600">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="text-practice-container">
-      <div className="text-header">
-        <div className="text-header-actions">
-          <button 
-            onClick={() => window.location.href = '/home'} 
-            className="secondary-button"
+    <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="mb-8">
+        <div className="flex justify-between items-center mb-4">
+          <button
+            onClick={() => window.location.href = `/home/${languageId}`}
+            className="text-indigo-600 hover:text-indigo-800"
           >
-            ← Back to Home
+            ← Back to {languageNames[languageId]} Texts
           </button>
-          <div className="text-actions">
-            <button 
-              onClick={handleEdit}
-              className="secondary-button"
+          <div className="space-x-4">
+            <button
+              onClick={() => setShowEditModal(true)}
+              className="px-4 py-2 border border-indigo-600 text-indigo-600 rounded hover:bg-indigo-50"
             >
               Edit
             </button>
-            <button 
-              onClick={handleDelete}
-              className="secondary-button"
-              style={{ backgroundColor: 'var(--error)', color: 'white', borderColor: 'var(--error)' }}
+            <button
+              onClick={() => {
+                if (confirm('Are you sure you want to delete this text?')) {
+                  // Handle delete
+                }
+              }}
+              className="px-4 py-2 border border-red-500 text-red-500 rounded hover:bg-red-50"
             >
               Delete
             </button>
           </div>
         </div>
-        <h1>{title}</h1>
+        <h1 className="text-3xl font-bold">{title}</h1>
       </div>
 
-      <div className="text-practice-layout">
-        <div className="text-content">
-          {practiceMode ? (
-            <>
-              {renderPracticeText()}
-              {hasMore && (
-                <div className="mt-6 text-center">
-                  <button
-                    onClick={handleLoadMore}
-                    disabled={loading || practiceLoading}
-                    className="primary-button"
-                  >
-                    {loading || practiceLoading ? 'Analyzing...' : 'Load More'}
-                  </button>
-                </div>
-              )}
-            </>
-          ) : (
-            <>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2">
+          {practiceMode ? renderPracticeText() : (
+            <div className="prose max-w-none">
               {visibleChunks.map((chunk, index) => (
-                <div key={index} className="mb-4">
-                  {chunk.content}
-                </div>
+                <p key={index}>{chunk.content}</p>
               ))}
-              {hasMore && (
-                <div className="mt-6 text-center">
-                  <button
-                    onClick={handleLoadMore}
-                    disabled={loading}
-                    className="primary-button"
-                  >
-                    {loading ? 'Loading...' : 'Load More'}
-                  </button>
-                </div>
-              )}
-            </>
+            </div>
+          )}
+          
+          {hasMore && (
+            <div className="mt-8 text-center">
+              <button
+                onClick={handleLoadMore}
+                disabled={loading || practiceLoading}
+                className="px-6 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-50"
+              >
+                {loading || practiceLoading ? 'Loading...' : 'Load More'}
+              </button>
+            </div>
           )}
         </div>
 
-        {/* Practice panel */}
-        <div className="practice-panel">
-          <h3>Russian Grammar Cases</h3>
-          <div className="cases-grid">
-            {Object.entries(selectedCases).map(([caseName, isSelected]) => (
-              <label key={caseName} className="case-checkbox">
-                <input
-                  type="checkbox"
-                  checked={isSelected}
-                  onChange={() => handleCaseToggle(caseName)}
-                  disabled={practiceMode}
-                />
-                {caseName.charAt(0).toUpperCase() + caseName.slice(1)}
-              </label>
-            ))}
-          </div>
-          <button 
-            onClick={practiceMode ? () => setPracticeMode(false) : handlePracticeClick}
-            className="primary-button practice-button"
-            disabled={!practiceMode && !Object.values(selectedCases).some(Boolean)}
-          >
-            {practiceMode ? 'Exit Practice Mode' : 'Practice Selected Cases'}
-          </button>
+        <div className="lg:col-span-1">
+          <GrammarPanel
+            languageId={languageId}
+            selectedFeatures={selectedFeatures}
+            onFeatureToggle={handleFeatureToggle}
+            onPracticeClick={handlePracticeClick}
+            isPracticing={practiceMode}
+            isLoading={practiceLoading}
+          />
         </div>
       </div>
-      {showEditModal && <EditTextModal text={{ _id: textId, title, content: getFullText() }} closeModal={handleEditModalClose} />}
+
+      {showEditModal && (
+        <EditTextModal
+          text={{ _id: textId, title, content: chunks.map(c => c.content).join('') }}
+          languageId={languageId}
+          closeModal={(success) => {
+            setShowEditModal(false);
+            if (success) fetchChunks(0);
+          }}
+        />
+      )}
     </div>
   );
-}
+};
 
 export default TextPage;

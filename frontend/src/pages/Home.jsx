@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import TextModal from './TextModal';
-import EditTextModal from './EditTextModal';
+import TextModal from '../components/TextModal';
+import EditTextModal from '../components/EditTextModal';
 
 function HomePage() {
   const [texts, setTexts] = useState([]);

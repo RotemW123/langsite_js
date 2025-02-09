@@ -1,4 +1,3 @@
-// models/Text.js
 const mongoose = require('mongoose');
 
 const textChunkSchema = new mongoose.Schema({
@@ -8,18 +7,18 @@ const textChunkSchema = new mongoose.Schema({
 
 const textSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  languageId: { type: String, required: true }, // Add language field
   title: { type: String, required: true },
   chunks: [textChunkSchema],
   totalChunks: { type: Number, required: true },
   createdAt: { type: Date, default: Date.now },
 });
 
-// Add index for efficient chunk retrieval
-textSchema.index({ userId: 1, 'chunks.order': 1 });
+// Add compound index for efficient queries
+textSchema.index({ userId: 1, languageId: 1, 'chunks.order': 1 });
 
 const CHUNK_SIZE = 1000; // Characters per chunk
 
-// Static method to chunk text content
 textSchema.statics.chunkContent = function(content) {
   const chunks = [];
   let order = 0;
