@@ -8,6 +8,7 @@ import SignUp from "./pages/SignUp";
 import LanguageSelection from "./components/LanguageSelection";
 import LanguageHome from "./pages/LanguageHome";
 import TextPage from "./pages/TextPage";
+import "./index.css"; // Make sure this line exists!
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <BrowserRouter>

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 
 const SignIn = () => {
   const [email, setEmail] = useState("");
@@ -9,10 +10,9 @@ const SignIn = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("🟢 handleSubmit triggered for SignIn");
+    setIsLoading(true);
     setError("");
     setMessage("");
-    setIsLoading(true);
 
     try {
       const response = await fetch("http://localhost:5000/api/auth/signin", {
@@ -24,66 +24,93 @@ const SignIn = () => {
       });
 
       const data = await response.json();
-      console.log("Response:", response);
-      console.log("Data:", data);
 
       if (response.ok && data.token && data.user) {
         localStorage.setItem("token", data.token);
         localStorage.setItem("userId", data.user.id);
-        
-        console.log("Token and userId stored successfully");
         setMessage("Login successful!");
-        
-        // Changed navigation to language-selection instead of home
-        setTimeout(() => {
-          window.location.href = "/language-selection";
-        }, 100);
+        window.location.href = "/language-selection";
       } else {
-        setError(data.message || "Login failed - Missing token or user data");
+        setError(data.message || "Login failed");
         localStorage.removeItem("token");
         localStorage.removeItem("userId");
       }
     } catch (err) {
       console.error("Login error:", err);
       setError("Error during login. Please try again.");
-      localStorage.removeItem("token");
-      localStorage.removeItem("userId");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="App">
-      <div className="auth-form-container">
-        <h2>Welcome Back</h2>
-        <form onSubmit={handleSubmit} className="auth-form">
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+    <div className="min-h-screen bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center p-4">
+      <div className="max-w-md w-full bg-white rounded-lg shadow-xl p-8">
+        <div className="text-center mb-8">
+          <h2 className="text-3xl font-bold text-gray-900">Welcome Back</h2>
+          <p className="mt-2 text-gray-600">
+            Don't have an account?{" "}
+            <Link to="/signup" className="text-indigo-600 hover:text-indigo-500 font-medium">
+              Sign up
+            </Link>
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Email
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              placeholder="Enter your email"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Password
+            </label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              placeholder="Enter your password"
+              required
+            />
+          </div>
+
+          {error && (
+            <div className="bg-red-50 text-red-500 p-3 rounded-lg">
+              {error}
+            </div>
+          )}
+
+          {message && (
+            <div className="bg-green-50 text-green-500 p-3 rounded-lg">
+              {message}
+            </div>
+          )}
+
+          <button
+            type="submit"
             disabled={isLoading}
-            required
-          />
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            disabled={isLoading}
-            required
-          />
-          <button 
-            type="submit" 
-            className="primary-button"
-            disabled={isLoading}
+            className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-2 px-4 rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all duration-200"
           >
-            {isLoading ? 'Signing in...' : 'Sign In'}
+            {isLoading ? "Signing in..." : "Sign In"}
           </button>
+
+          <div className="text-center">
+            <Link to="/" className="text-indigo-600 hover:text-indigo-500 text-sm">
+              ← Back to home
+            </Link>
+          </div>
         </form>
-        {message && <p className="success-message">{message}</p>}
-        {error && <p className="error-message">{error}</p>}
       </div>
     </div>
   );
