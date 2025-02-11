@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import EditTextModal from '../components/EditTextModal';
 import GrammarPanel from '../components/GrammarPanel';
-import TranslatableText from '../components/TranslatableText';  // Adjust the path based on your folder structure
+import { AddToFlashcardsButton, FlashcardCreationDialog } from '../components/FlashcardComponents';
 
 const TextPage = () => {
   // Get IDs from URL
@@ -26,6 +26,9 @@ const TextPage = () => {
   const [userAnswers, setUserAnswers] = useState({});
   const [feedback, setFeedback] = useState({});
   const [practiceLoading, setPracticeLoading] = useState(false);
+
+  const [selectedWord, setSelectedWord] = useState(null);
+  const [showCardDialog, setShowCardDialog] = useState(false);
 
   // Language names mapping
   const languageNames = {
@@ -326,12 +329,63 @@ const TextPage = () => {
           {practiceMode ? renderPracticeText() : (
             <div className="prose max-w-none">
               {visibleChunks.map((chunk, index) => (
-                <TranslatableText
-                  key={index}
-                  text={chunk.content}
-                  languageId={languageId}
-                />
+                <p key={index}>
+                  {chunk.content.split(/(\s+)/).map((word, wordIndex) => {
+                    // Skip rendering buttons for spaces/punctuation
+                    if (/^\s+$/.test(word)) return word;
+                    
+                    return (
+                      <span key={wordIndex} className="relative inline-flex items-center">
+                        <span
+                          className="cursor-pointer hover:bg-blue-100 px-0.5 rounded"
+                          onClick={() => setSelectedWord(word)}
+                        >
+                          {word}
+                        </span>
+                        {selectedWord === word && (
+                          <AddToFlashcardsButton
+                            word={word}
+                            onAdd={() => setShowCardDialog(true)}
+                          />
+                        )}
+                      </span>
+                    );
+                  })}
+                </p>
               ))}
+              
+              <FlashcardCreationDialog
+                word={selectedWord}
+                isOpen={showCardDialog}
+                onClose={() => {
+                  setShowCardDialog(false);
+                  setSelectedWord(null);
+                }}
+                onSave={async (cardData) => {
+                  try {
+                    const response = await fetch(`http://localhost:5000/api/flashcards/${languageId}`, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                      },
+                      body: JSON.stringify(cardData)
+                    });
+                    
+                    if (response.ok) {
+                      // You can add a success toast/notification here
+                      console.log('Card created successfully');
+                    } else {
+                      console.error('Failed to create card');
+                    }
+                  } catch (error) {
+                    console.error('Error creating flashcard:', error);
+                  } finally {
+                    setShowCardDialog(false);
+                    setSelectedWord(null);
+                  }
+                }}
+              />
             </div>
           )}
           
