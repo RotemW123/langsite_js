@@ -12,12 +12,16 @@ const grammarConfig = {
     ]
   },
   spanish: {
-    title: 'Spanish Grammar',
+    title: 'Spanish Verb Tenses',
     features: [
-      { id: 'present', name: 'Present Tense' },
-      { id: 'preterite', name: 'Preterite Tense' },
-      { id: 'imperfect', name: 'Imperfect Tense' },
-      { id: 'subjunctive', name: 'Subjunctive Mood' }
+      { id: 'simple_present', name: 'Simple Present' },
+      { id: 'present_continuous', name: 'Present Continuous' },
+      { id: 'imperfect', name: 'Imperfect' },
+      { id: 'preterite', name: 'Preterite' },
+      { id: 'present_perfect', name: 'Present Perfect' },
+      { id: 'simple_future', name: 'Simple Future' },
+      { id: 'conditional', name: 'Conditional' },
+      { id: 'present_subjunctive', name: 'Present Subjunctive' }
     ]
   },
   french: {

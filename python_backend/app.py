@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import logging
 from language_processors.russian import RussianProcessor
+from language_processors.spanish import SpanishProcessor
 # Import other language processors as they're implemented
 
 # Configure logging
@@ -20,8 +21,7 @@ CORS(app, resources={
 # Initialize language processors
 language_processors = {
     'russian': RussianProcessor(),
-    # Add other language processors as they're implemented
-    # 'spanish': SpanishProcessor(),
+    'spanish': SpanishProcessor(),
     # 'french': FrenchProcessor(),
     # etc.
 }
