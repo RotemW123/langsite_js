@@ -1,7 +1,6 @@
 const jwt = require('jsonwebtoken');
 
 const authMiddleware = async (req, res, next) => {
-  console.log('🟡 authMiddleware triggered');
   
   try {
     // Get token from header
@@ -17,7 +16,6 @@ const authMiddleware = async (req, res, next) => {
     
     // Add user to request object - make sure we use the same property name as in token creation
     req.user = decoded;  // This will have { id: user._id } from the token
-    console.log('🟢 User authenticated with id:', req.user.id);
     
     next();
   } catch (err) {
