@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import TextModal from '../components/TextModal';
 import EditTextModal from '../components/EditTextModal';
+import { useNavigate } from 'react-router-dom';
 
 const LanguageHome = () => {
   const [texts, setTexts] = useState([]);
@@ -9,6 +10,7 @@ const LanguageHome = () => {
   const [selectedText, setSelectedText] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
   
   // Get languageId from URL
   const languageId = window.location.pathname.split('/')[2];
@@ -156,19 +158,27 @@ const LanguageHome = () => {
       
       <div className="flex justify-between items-center mb-8">
         <button 
-          onClick={() => window.location.href = '/language-selection'}
-          className="text-indigo-600 hover:text-indigo-800 flex items-center gap-2"
+            onClick={() => navigate('/language-selection')}
+            className="text-indigo-600 hover:text-indigo-800 flex items-center gap-2"
         >
-          ← Back to Languages
+            ← Back to Languages
         </button>
         
-        <button 
-          onClick={handleAddTextClick}
-          className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-2 rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all duration-200"
-        >
-          + Add New Text
-        </button>
-      </div>
+        <div className="flex gap-4">
+            <button 
+            onClick={() => navigate(`/practice/${languageId}`)}
+            className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-2 rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-200"
+            >
+            Practice Cards
+            </button>
+            <button 
+            onClick={handleAddTextClick}
+            className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-2 rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all duration-200"
+            >
+            + Add New Text
+            </button>
+        </div>
+    </div>
 
       {error && <p className="text-red-500 mb-4">{error}</p>}
       

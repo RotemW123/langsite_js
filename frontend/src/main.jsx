@@ -8,7 +8,8 @@ import SignUp from "./pages/SignUp";
 import LanguageSelection from "./components/LanguageSelection";
 import LanguageHome from "./pages/LanguageHome";
 import TextPage from "./pages/TextPage";
-import "./index.css"; // Make sure this line exists!
+import FlashcardPractice from "./components/FlashcardPractice";
+import "./index.css"; 
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <BrowserRouter>
@@ -19,6 +20,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
       <Route path="/language-selection" element={<LanguageSelection />} />
       <Route path="/home/:languageId" element={<LanguageHome />} />
       <Route path="/text/:languageId/:textId" element={<TextPage />} />
+      <Route path="/practice/:languageId" element={<FlashcardPractice />} />
     </Routes>
   </BrowserRouter>
 );

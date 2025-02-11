@@ -4,7 +4,7 @@ const dotenv = require('dotenv');
 const mongoose = require('mongoose');
 const authRoutes = require("./routes/auth");
 const textRoutes = require('./routes/textRoutes');
-const translationRoutes = require('./routes/translationRoutes');
+const flashcardRoutes = require('./routes/flashcardRoutes');
 
 dotenv.config();
 
@@ -16,10 +16,12 @@ app.use(cors());
 app.use(express.json({limit: '50mb'}));
 app.use(express.urlencoded({limit: '50mb', extended: true}));
 
+
 // Routes
 app.use("/api/auth", authRoutes);
 app.use('/api/text', textRoutes); // The textRoutes now handle language-specific endpoints
-app.use('/api/translation', translationRoutes);
+app.use('/api/flashcards', flashcardRoutes);
+
 
 
 // Sample API route
