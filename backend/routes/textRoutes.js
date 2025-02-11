@@ -83,9 +83,8 @@ router.get('/:languageId/:textId', authMiddleware, async (req, res) => {
 router.get('/:languageId/:textId/chunks', authMiddleware, async (req, res) => {
   try {
     const { languageId, textId } = req.params;
-    const { page = 0, limit = 5 } = req.query;
+    const { page = 0 } = req.query;
     const pageNum = parseInt(page);
-    const limitNum = parseInt(limit);
 
     const text = await Text.findOne({
       _id: textId,
@@ -97,25 +96,20 @@ router.get('/:languageId/:textId/chunks', authMiddleware, async (req, res) => {
       return res.status(404).json({ message: 'Text not found' });
     }
 
-    const paginatedText = await Text.findOne(
-      { _id: textId, userId: req.user.id },
-      {
-        title: 1,
-        totalChunks: 1,
-        chunks: {
-          $slice: [pageNum * limitNum, limitNum]
-        }
-      }
-    );
+    // Get just one chunk
+    const chunk = text.chunks[pageNum];
+    if (!chunk) {
+      return res.status(404).json({ message: 'Chunk not found' });
+    }
 
     const response = {
       textId: text._id,
       languageId,
       title: text.title,
-      chunks: text.chunks,
+      chunks: [chunk],
       totalChunks: text.totalChunks,
       currentPage: pageNum,
-      hasMore: (pageNum + 1) * limitNum < text.totalChunks
+      hasMore: pageNum + 1 < text.totalChunks
     };
 
     res.json(response);

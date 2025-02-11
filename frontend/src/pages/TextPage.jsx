@@ -35,6 +35,35 @@ const TextPage = () => {
     german: 'German'
   };
 
+
+  const analyzeChunk = async (chunk, prevChunksLength = 0) => {
+    const selectedFeaturesList = Object.entries(selectedFeatures)
+      .filter(([_, isSelected]) => isSelected)
+      .map(([featureId]) => featureId);
+
+    const response = await fetch(`http://localhost:5001/analyze/${languageId}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        text: chunk.content,
+        features: selectedFeaturesList
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to analyze text');
+    }
+
+    const data = await response.json();
+    // Calculate offset based on the provided previous chunks length
+    return data.words.map(word => ({
+      ...word,
+      position: word.position + prevChunksLength
+    }));
+  };
+
   const fetchChunks = async (page) => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -44,6 +73,7 @@ const TextPage = () => {
 
     try {
       setLoading(true);
+
       const response = await fetch(
         `http://localhost:5000/api/text/${languageId}/${textId}/chunks?page=${page}`,
         {
@@ -58,45 +88,60 @@ const TextPage = () => {
       }
 
       const data = await response.json();
-      
-      if (page === 0) {
-        setChunks([data.chunks[0]]);
-        setVisibleChunks([data.chunks[0]]);
-        setTitle(data.title);
+      const nextChunk = data.chunks[0];
+
+      if (practiceMode) {
+        setPracticeLoading(true);
+        try {
+          // Calculate the total length of previous chunks for offset
+          const prevChunksLength = chunks.reduce((acc, chunk) => acc + chunk.content.length, 0);
+          const analyzedWords = await analyzeChunk(nextChunk, prevChunksLength);
+
+          if (page === 0) {
+            setChunks([nextChunk]);
+            setPracticeWords(analyzedWords);
+            setVisibleChunks([nextChunk]);
+            setTitle(data.title);
+          } else {
+            setChunks(prev => [...prev, nextChunk]);
+            setPracticeWords(prev => [...prev, ...analyzedWords]);
+            setVisibleChunks(prev => [...prev, nextChunk]);
+          }
+        } catch (err) {
+          console.error('Error analyzing chunk:', err);
+          setError('Failed to analyze chunk');
+          return;
+        } finally {
+          setPracticeLoading(false);
+        }
       } else {
-        const nextChunk = data.chunks[0];
-        setChunks(prev => [...prev, nextChunk]);
-        setVisibleChunks(prev => [...prev, nextChunk]);
+        if (page === 0) {
+          setChunks([nextChunk]);
+          setVisibleChunks([nextChunk]);
+          setTitle(data.title);
+        } else {
+          setChunks(prev => [...prev, nextChunk]);
+          setVisibleChunks(prev => [...prev, nextChunk]);
+        }
       }
 
       setHasMore(data.hasMore);
       setCurrentPage(data.currentPage);
     } catch (err) {
-      console.error('Error fetching chunks:', err);
-      setError('Failed to load text chunks');
+      console.error('Error:', err);
+      setError('Failed to load text');
     } finally {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchChunks(0);
-  }, [languageId, textId]);
-
-  const handleFeatureToggle = (featureId) => {
-    setSelectedFeatures(prev => ({
-      ...prev,
-      [featureId]: !prev[featureId]
-    }));
-  };
-
+  
   const handlePracticeClick = async () => {
     if (practiceMode) {
       setPracticeMode(false);
       setPracticeWords([]);
       setUserAnswers({});
       setFeedback({});
-      setVisibleChunks(chunks); // Restore all chunks when exiting practice mode
+      setVisibleChunks(chunks);
       return;
     }
 
@@ -111,26 +156,10 @@ const TextPage = () => {
 
     try {
       setPracticeLoading(true);
-      setVisibleChunks([chunks[0]]); // Start with first chunk in practice mode
-      
-      const response = await fetch(`http://localhost:5001/analyze/${languageId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          text: chunks[0].content,
-          features: selectedFeaturesList
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to analyze text');
-      }
-
-      const data = await response.json();
-      setPracticeWords(data.words);
+      const analyzedWords = await analyzeChunk(chunks[0], 0);
       setPracticeMode(true);
+      setPracticeWords(analyzedWords);
+      setVisibleChunks([chunks[0]]);
     } catch (err) {
       console.error('Error starting practice:', err);
       setError('Failed to analyze text for practice');
@@ -139,11 +168,25 @@ const TextPage = () => {
     }
   };
 
-  const handleLoadMore = async () => {
-    if (!hasMore || loading) return;
-    await fetchChunks(currentPage + 1);
+
+  useEffect(() => {
+    fetchChunks(0);
+  }, [languageId, textId]);
+
+  const handleFeatureToggle = (featureId) => {
+    setSelectedFeatures(prev => ({
+      ...prev,
+      [featureId]: !prev[featureId]
+    }));
   };
 
+  
+
+  const handleLoadMore = async () => {
+    if (!hasMore || loading || practiceLoading) return;
+    await fetchChunks(currentPage + 1);
+  };
+  
   const handleAnswerCheck = async (wordId) => {
     try {
       const word = practiceWords[wordId];
@@ -177,8 +220,10 @@ const TextPage = () => {
     }
   };
 
+
+
   const renderPracticeText = () => {
-    if (!visibleChunks.length) return null;
+    if (!visibleChunks.length || !Array.isArray(practiceWords)) return null;
 
     const fullText = visibleChunks.map(chunk => chunk.content).join('');
     const elements = [];
@@ -192,7 +237,7 @@ const TextPage = () => {
         </span>
       );
 
-      // Add practice word with input
+      // Add practice word with input (note: we're using position + original.length for lastIndex)
       elements.push(
         <span key={`practice-${index}`} className="inline-flex items-center gap-2">
           <input
@@ -206,7 +251,7 @@ const TextPage = () => {
               ${feedback[index]?.correct ? 'border-green-500 bg-green-50' : 
                 feedback[index]?.correct === false ? 'border-red-500 bg-red-50' : 
                 'border-gray-300'}`}
-            placeholder={word.original}
+            placeholder={word.display}
           />
           <button
             onClick={() => handleAnswerCheck(index)}
@@ -222,7 +267,7 @@ const TextPage = () => {
         </span>
       );
 
-      lastIndex = word.position + word.length;
+      lastIndex = word.position + word.original.length;
     });
 
     // Add remaining text
