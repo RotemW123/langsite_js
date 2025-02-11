@@ -25,12 +25,15 @@ const grammarConfig = {
     ]
   },
   french: {
-    title: 'French Grammar',
+    title: 'French Verb Tenses',
     features: [
-      { id: 'present', name: 'Present Tense' },
-      { id: 'passe_compose', name: 'Passé Composé' },
+      { id: 'present_simple', name: 'Présent' },
+      { id: 'present_continuous', name: 'Présent Continu' },
       { id: 'imparfait', name: 'Imparfait' },
-      { id: 'subjonctif', name: 'Subjonctif' }
+      { id: 'passe_compose', name: 'Passé Composé' },
+      { id: 'future_simple', name: 'Futur Simple' },
+      { id: 'conditional', name: 'Conditionnel' },
+      { id: 'subjonctif', name: 'Subjonctif Présent' }
     ]
   },
   german: {

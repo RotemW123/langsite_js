@@ -4,6 +4,7 @@ const dotenv = require('dotenv');
 const mongoose = require('mongoose');
 const authRoutes = require("./routes/auth");
 const textRoutes = require('./routes/textRoutes');
+const translationRoutes = require('./routes/translationRoutes');
 
 dotenv.config();
 
@@ -18,6 +19,8 @@ app.use(express.urlencoded({limit: '50mb', extended: true}));
 // Routes
 app.use("/api/auth", authRoutes);
 app.use('/api/text', textRoutes); // The textRoutes now handle language-specific endpoints
+app.use('/api/translation', translationRoutes);
+
 
 // Sample API route
 app.get('/', (req, res) => {
