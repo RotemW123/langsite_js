@@ -3,6 +3,8 @@ from flask_cors import CORS
 import logging
 from language_processors.russian import RussianProcessor
 from language_processors.spanish import SpanishProcessor
+from language_processors.french import FrenchProcessor
+
 # Import other language processors as they're implemented
 
 # Configure logging
@@ -22,7 +24,7 @@ CORS(app, resources={
 language_processors = {
     'russian': RussianProcessor(),
     'spanish': SpanishProcessor(),
-    # 'french': FrenchProcessor(),
+    'french': FrenchProcessor(),
     # etc.
 }
 

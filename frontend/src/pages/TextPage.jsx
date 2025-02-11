@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import EditTextModal from '../components/EditTextModal';
 import GrammarPanel from '../components/GrammarPanel';
+import TranslatableText from '../components/TranslatableText';  // Adjust the path based on your folder structure
 
 const TextPage = () => {
   // Get IDs from URL
@@ -325,7 +326,11 @@ const TextPage = () => {
           {practiceMode ? renderPracticeText() : (
             <div className="prose max-w-none">
               {visibleChunks.map((chunk, index) => (
-                <p key={index}>{chunk.content}</p>
+                <TranslatableText
+                  key={index}
+                  text={chunk.content}
+                  languageId={languageId}
+                />
               ))}
             </div>
           )}
