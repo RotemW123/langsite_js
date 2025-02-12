@@ -48,10 +48,10 @@ const grammarConfig = {
   hebrew: {
     title: 'Hebrew Grammar',
     features: [
-      { id: 'present', name: 'Present Tense' },
-      { id: 'past', name: 'Past Tense' },
-      { id: 'future', name: 'Future Tense' },
-      { id: 'binyanim', name: 'Binyanim' }
+      { id: 'past', name: 'Past Tense - עבר' },
+      { id: 'present', name: 'Present Tense - הווה' },
+      { id: 'future', name: 'Future Tense - עתיד' },
+      { id: 'plurals', name: 'Plurals - רבים' }
     ]
   }
 };
