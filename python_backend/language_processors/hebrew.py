@@ -113,18 +113,6 @@ class HebrewProcessor:
                             })
                             continue
 
-                    # Handle plurals
-                    if 'plurals' in features and self.is_plural(word_info):
-                        print('lemma = ', word_info['lemma'])
-                        print('text = ', word_info['text'])
-
-                        words_to_practice.append({
-                            'original': word_info['text'],
-                            'display': word_info['lemma'],
-                            'position': word_info['dspan'][0],
-                            'length': word_info['dspan'][1] - word_info['dspan'][0],
-                            'feature': 'plurals'
-                        })
 
             logger.info(f"Found {len(words_to_practice)} words to practice")
             return {

@@ -23,8 +23,13 @@ class RussianProcessor:
         """Initialize spaCy, stanza, and pymorphy models."""
         logger.info("Loading models...")
         self.nlp_spacy = spacy.load('ru_core_news_lg')
-        # stanza.download('ru') 
-        self.nlp_stanza = stanza.Pipeline('ru')
+        stanza.download('ru')
+        self.nlp_stanza = stanza.Pipeline(
+            'ru',
+            processors='tokenize,pos,lemma',  # Explicitly specify processors
+            # use_gpu=False,
+            verbose=False
+        )
         self.morph = pymorphy3.MorphAnalyzer()
         logger.info("Models loaded successfully")
 
