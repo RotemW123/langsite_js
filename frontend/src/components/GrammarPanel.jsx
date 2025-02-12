@@ -50,8 +50,7 @@ const grammarConfig = {
     features: [
       { id: 'past', name: 'Past Tense - עבר' },
       { id: 'present', name: 'Present Tense - הווה' },
-      { id: 'future', name: 'Future Tense - עתיד' },
-      { id: 'plurals', name: 'Plurals - רבים' }
+      { id: 'future', name: 'Future Tense - עתיד' }
     ]
   }
 };
