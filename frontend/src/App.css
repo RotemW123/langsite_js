@@ -317,3 +317,54 @@
 .rotate-y-180 {
   transform: rotateY(180deg);
 }
+
+/* RTL Support */
+.rtl {
+  direction: rtl;
+}
+
+.ltr {
+  direction: ltr;
+}
+
+/* Text alignment */
+.text-right {
+  text-align: right;
+}
+
+.text-left {
+  text-align: left;
+}
+
+/* Ensure paragraphs take full width */
+.prose p {
+  width: 100%;
+  display: block;
+}
+
+/* Fix word wrapping */
+.whitespace-normal {
+  white-space: normal;
+}
+
+/* Fix for flashcard button positioning */
+.rtl .relative.inline-flex.items-center {
+  direction: ltr;
+  margin: 0 0.25rem;
+}
+
+.ltr .relative.inline-flex.items-center {
+  direction: ltr;
+  margin: 0 0.25rem;
+}
+
+/* Container width control */
+.prose {
+  width: 100%;
+  max-width: 100%;
+}
+
+.prose > div {
+  width: 100%;
+  display: block;
+}

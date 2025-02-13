@@ -30,6 +30,9 @@ const TextPage = () => {
   const [selectedWord, setSelectedWord] = useState(null);
   const [showCardDialog, setShowCardDialog] = useState(false);
 
+  const rtlLanguages = ['arabic', 'hebrew'];
+  const isRTL = (languageId) => rtlLanguages.includes(languageId);
+
   // Language names mapping
   const languageNames = {
     russian: 'Russian',
@@ -282,7 +285,11 @@ const TextPage = () => {
       </span>
     );
 
-    return <div className="space-y-4">{elements}</div>;
+    return (
+      <div className={`space-y-4 ${isRTL(languageId) ? 'rtl' : 'ltr'}`} dir={isRTL(languageId) ? 'rtl' : 'ltr'}>
+        {elements}
+      </div>
+    );
   };
 
   if (loading && chunks.length === 0) {
@@ -327,33 +334,35 @@ const TextPage = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
-          {practiceMode ? renderPracticeText() : (
-            <div className="prose max-w-none">
-              {visibleChunks.map((chunk, index) => (
-                <p key={index}>
-                  {chunk.content.split(/(\s+)/).map((word, wordIndex) => {
-                    // Skip rendering buttons for spaces/punctuation
-                    if (/^\s+$/.test(word)) return word;
-                    
-                    return (
-                      <span key={wordIndex} className="relative inline-flex items-center">
-                        <span
-                          className="cursor-pointer hover:bg-blue-100 px-0.5 rounded"
-                          onClick={() => setSelectedWord(word)}
-                        >
-                          {word}
+        {practiceMode ? renderPracticeText() : (
+            <div className={`prose max-w-none`}>
+              <div className={`${isRTL(languageId) ? 'rtl text-right' : 'ltr text-left'} w-full`} dir={isRTL(languageId) ? 'rtl' : 'ltr'}>
+                {visibleChunks.map((chunk, index) => (
+                  <p key={index} className="w-full">
+                    {chunk.content.split(/(\s+)/).map((word, wordIndex) => {
+                      // Skip rendering buttons for spaces/punctuation
+                      if (/^\s+$/.test(word)) return word;
+                      
+                      return (
+                        <span key={wordIndex} className="relative inline-flex items-center whitespace-normal">
+                          <span
+                            className="cursor-pointer hover:bg-blue-100 px-0.5 rounded"
+                            onClick={() => setSelectedWord(word)}
+                          >
+                            {word}
+                          </span>
+                          {selectedWord === word && (
+                            <AddToFlashcardsButton
+                              word={word}
+                              onAdd={() => setShowCardDialog(true)}
+                            />
+                          )}
                         </span>
-                        {selectedWord === word && (
-                          <AddToFlashcardsButton
-                            word={word}
-                            onAdd={() => setShowCardDialog(true)}
-                          />
-                        )}
-                      </span>
-                    );
-                  })}
-                </p>
-              ))}
+                      );
+                    })}
+                  </p>
+                ))}
+              </div>
               
               <FlashcardCreationDialog
                 word={selectedWord}
