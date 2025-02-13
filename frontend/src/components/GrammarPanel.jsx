@@ -52,6 +52,22 @@ const grammarConfig = {
       { id: 'present', name: 'Present Tense - הווה' },
       { id: 'future', name: 'Future Tense - עתיד' }
     ]
+  },
+  arabic: {
+    title: 'Arabic Grammar',
+    features: [
+      { id: 'past', name: 'Past Tense - الماضي' },
+      { id: 'present', name: 'Present Tense - المضارع' },
+      { id: 'future', name: 'Future Tense - المستقبل' },
+      { id: 'active_participle', name: 'Active Participle - اسم الفاعل' },
+      { id: 'passive_participle', name: 'Passive Participle - اسم المفعول' },
+      { id: 'masdar', name: 'Verbal Noun - المصدر' },
+      { id: 'dual', name: 'Dual Form - المثنى' },
+      { id: 'plural', name: 'Plural Form - الجمع' },
+      { id: 'nominal', name: 'Nominal Case - الرفع' },
+      { id: 'accusative', name: 'Accusative Case - النصب' },
+      { id: 'genitive', name: 'Genitive Case - الجر' }
+    ]
   }
 };
 

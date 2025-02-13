@@ -6,7 +6,8 @@ const LanguageSelection = () => {
     { id: 'spanish', name: 'Spanish', icon: '🇪🇸', gradient: 'from-yellow-500 to-red-500' },
     { id: 'french', name: 'French', icon: '🇫🇷', gradient: 'from-blue-500 to-red-500' },
     { id: 'hebrew', name: 'Hebrew', icon: '🇮🇱', gradient: 'from-blue-500 to-white' },
-    { id: 'german', name: 'German', icon: '🇩🇪', gradient: 'from-black to-red-500' }
+    { id: 'german', name: 'German', icon: '🇩🇪', gradient: 'from-black to-red-500' },
+    { id: 'arabic', name: 'Arabic', icon: '🇸🇦', gradient: 'from-green-500 to-white' }
   ];
 
   const handleLanguageSelect = (languageId) => {

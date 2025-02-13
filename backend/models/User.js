@@ -18,7 +18,8 @@ const languageNames = {
   spanish: 'Spanish',
   french: 'French',
   hebrew: 'Hebrew',
-  german: 'German'
+  german: 'German',
+  arabic: 'Arabic'
 };
 
 // Update schema methods to handle languages and create default decks
