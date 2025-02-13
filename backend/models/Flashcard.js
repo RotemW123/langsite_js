@@ -45,11 +45,17 @@ const flashcardSchema = new mongoose.Schema({
     default: 0,  // 0-5 scale
     min: 0,
     max: 5
+  },
+  deckId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Deck',
+    required: true
   }
 });
 
 // Compound index for efficient queries
 flashcardSchema.index({ userId: 1, languageId: 1 });
+
 
 const Flashcard = mongoose.model('Flashcard', flashcardSchema);
 module.exports = Flashcard;
