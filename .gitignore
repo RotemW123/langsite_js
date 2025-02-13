@@ -20,6 +20,13 @@ env/
 venv/
 ENV/
 .python-version
+python_backend/complex_russian_evaluator.py
+python_backend/evaluate_russian.py
+python_backend/language_processors/test_camel.py
+python_backend/russian_case_analysis.png
+python_backend/russian_case_error_analysis.csv
+python_backend/test_data/
+
 
 # IDE
 .idea/

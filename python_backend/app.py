@@ -5,6 +5,7 @@ from language_processors.russian import RussianProcessor
 from language_processors.spanish import SpanishProcessor
 from language_processors.french import FrenchProcessor
 from language_processors.hebrew import HebrewProcessor
+from language_processors.arabic import ArabicProcessor
 
 # Import other language processors as they're implemented
 
@@ -27,6 +28,7 @@ language_processors = {
     'spanish': SpanishProcessor(),
     'french': FrenchProcessor(),
     'hebrew': HebrewProcessor(),
+    'arabic': ArabicProcessor(),
 }
 
 @app.route('/analyze/<language>', methods=['POST'])

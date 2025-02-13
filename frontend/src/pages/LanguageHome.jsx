@@ -21,7 +21,8 @@ const LanguageHome = () => {
     spanish: 'Spanish',
     french: 'French',
     hebrew: 'Hebrew',
-    german: 'German'
+    german: 'German',
+    arabic: 'Arabic'
   };
 
   const fetchTexts = async () => {
