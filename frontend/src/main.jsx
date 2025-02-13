@@ -1,3 +1,4 @@
+// Update main.jsx routes
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
@@ -9,7 +10,9 @@ import LanguageSelection from "./components/LanguageSelection";
 import LanguageHome from "./pages/LanguageHome";
 import TextPage from "./pages/TextPage";
 import FlashcardPractice from "./components/FlashcardPractice";
-import "./index.css"; 
+import DeckList from "./components/DeckList";
+import DeckDetail from "./components/DeckDetail";
+import "./index.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <BrowserRouter>
@@ -20,7 +23,9 @@ ReactDOM.createRoot(document.getElementById("root")).render(
       <Route path="/language-selection" element={<LanguageSelection />} />
       <Route path="/home/:languageId" element={<LanguageHome />} />
       <Route path="/text/:languageId/:textId" element={<TextPage />} />
-      <Route path="/practice/:languageId" element={<FlashcardPractice />} />
+      <Route path="/practice/:languageId" element={<DeckList />} />
+      <Route path="/deck/:languageId/:deckId" element={<DeckDetail />} />
+      <Route path="/practice/:languageId/:deckId" element={<FlashcardPractice />} />
     </Routes>
   </BrowserRouter>
 );

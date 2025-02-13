@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 
 const TrashIcon = () => (
   <svg 
@@ -26,6 +27,7 @@ const FlashcardPractice = () => {
   const [loading, setLoading] = useState(true);
   const [deleteMessage, setDeleteMessage] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const { deckId } = useParams();
   const navigate = useNavigate();
   
   const languageId = window.location.pathname.split('/')[2];
@@ -41,18 +43,22 @@ const FlashcardPractice = () => {
           return;
         }
 
-        const response = await fetch(
-          `http://localhost:5000/api/flashcards/${languageId}`,
-          {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
+        // Update URL to include deckId if provided
+        const url = deckId 
+          ? `http://localhost:5000/api/decks/${languageId}/${deckId}`
+          : `http://localhost:5000/api/flashcards/${languageId}`;
+
+        const response = await fetch(url, {
+          headers: {
+            'Authorization': `Bearer ${token}`
           }
-        );
+        });
 
         if (!response.ok) throw new Error('Failed to fetch cards');
 
-        const fetchedCards = await response.json();
+        const data = await response.json();
+        // If practicing a specific deck, use cards from deck data
+        const fetchedCards = deckId ? data.cards : data;
         setCards(shuffleArray(fetchedCards));
       } catch (error) {
         console.error('Error fetching flashcards:', error);
@@ -62,7 +68,7 @@ const FlashcardPractice = () => {
     };
 
     fetchCards();
-  }, [languageId, navigate]);
+  }, [languageId, deckId, navigate]);
 
   const shuffleArray = (array) => {
     const newArray = [...array];
