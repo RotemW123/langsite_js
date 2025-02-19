@@ -383,8 +383,7 @@ const TextPage = () => {
                     });
                     
                     if (response.ok) {
-                      // You can add a success toast/notification here
-                      console.log('Card created successfully');
+
                     } else {
                       console.error('Failed to create card');
                     }
