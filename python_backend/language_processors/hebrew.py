@@ -7,23 +7,19 @@ logger = logging.getLogger(__name__)
 
 class HebrewProcessor:
     def __init__(self):
-        logger.info("Initializing HebrewProcessor")
         self.nlp = None
         try:
             self.initialize_models()
-            logger.info("Successfully initialized HebrewProcessor")
         except Exception as e:
             logger.error(f"Failed to initialize HebrewProcessor: {e}")
             raise
 
     def initialize_models(self):
         """Initialize Trankit model for Hebrew."""
-        logger.info("Loading models...")
         try:
             # Initialize the pipeline for Hebrew with specific configurations
             self.nlp = trankit.Pipeline('hebrew', cache_dir='./cache', gpu=False)
             self._test_pipeline()  # Test if pipeline works
-            logger.info("Models loaded successfully")
         except Exception as e:
             logger.error(f"Error initializing models: {e}")
             raise
@@ -89,7 +85,6 @@ class HebrewProcessor:
 
     def analyze_text(self, text: str, features: List[str]) -> Dict[str, Any]:
         """Analyze Hebrew text for specific grammatical features."""
-        logger.info(f"Analyzing text with features: {features}")
         
         try:
             # Process the text with Trankit
@@ -114,7 +109,6 @@ class HebrewProcessor:
                             continue
 
 
-            logger.info(f"Found {len(words_to_practice)} words to practice")
             return {
                 'text': text,
                 'words': words_to_practice

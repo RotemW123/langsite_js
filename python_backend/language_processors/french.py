@@ -7,20 +7,16 @@ logger = logging.getLogger(__name__)
 
 class FrenchProcessor:
     def __init__(self):
-        logger.info("Initializing FrenchProcessor")
         self.nlp = None
         try:
             self.initialize_models()
-            logger.info("Successfully initialized FrenchProcessor")
         except Exception as e:
             logger.error(f"Failed to initialize FrenchProcessor: {e}")
             raise
 
     def initialize_models(self):
         """Initialize spaCy model."""
-        logger.info("Loading models...")
         self.nlp = spacy.load('fr_core_news_lg')
-        logger.info("Models loaded successfully")
 
     def get_infinitive(self, token) -> str:
         """Get the infinitive form of a verb."""
@@ -43,8 +39,6 @@ class FrenchProcessor:
 
     def analyze_text(self, text: str, features: List[str]) -> Dict[str, Any]:
         """Analyze French text for specific grammatical features."""
-        logger.info(f"Analyzing text with features: {features}")
-        
         try:
             doc = self.nlp(text)
             words_to_practice = []
@@ -135,7 +129,6 @@ class FrenchProcessor:
                         'feature': detected_feature
                     })
 
-            logger.info(f"Found {len(words_to_practice)} words to practice")
             return {
                 'text': text,
                 'words': words_to_practice
