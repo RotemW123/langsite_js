@@ -1,37 +1,50 @@
-// routes/deckRoutes.js
 const express = require('express');
 const router = express.Router();
 const Deck = require('../models/Deck');
 const User = require('../models/User');
 const Flashcard = require('../models/Flashcard');
-const authMiddleware = require('../middleware/authMiddleware');
+const { authMiddleware } = require('../middleware/authMiddleware');
+const { body, validationResult } = require('express-validator');
+
+// Validation middleware
+const deckValidation = [
+  body('title').trim().notEmpty().withMessage('Title is required')
+];
 
 // Create a new deck
-router.post('/:languageId', authMiddleware, async (req, res) => {
-  try {
-    const { title } = req.body;
-    const { languageId } = req.params;
-    const userId = req.user.id;
+router.post('/:languageId', 
+  authMiddleware,
+  deckValidation,
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
 
-    // Ensure user has this language and default deck
-    const user = await User.findById(userId);
-    const language = user.languages.find(lang => lang.languageId === languageId);
-    if (!language) {
-      await user.addLanguage(languageId);
+      const { title } = req.body;
+      const { languageId } = req.params;
+      const userId = req.user.id;
+
+      // Ensure user has this language and default deck
+      const user = await User.findById(userId);
+      const language = user.languages.find(lang => lang.languageId === languageId);
+      if (!language) {
+        await user.addLanguage(languageId);
+      }
+
+      const newDeck = new Deck({
+        userId,
+        languageId,
+        title
+      });
+
+      await newDeck.save();
+      res.status(201).json(newDeck);
+    } catch (error) {
+      console.error('Error creating deck:', error);
+      res.status(500).json({ message: 'Error creating deck' });
     }
-
-    const newDeck = new Deck({
-      userId,
-      languageId,
-      title
-    });
-
-    await newDeck.save();
-    res.status(201).json(newDeck);
-  } catch (error) {
-    console.error('Error creating deck:', error);
-    res.status(500).json({ message: 'Error creating deck' });
-  }
 });
 
 // Get all decks for a language
@@ -40,7 +53,6 @@ router.get('/:languageId', authMiddleware, async (req, res) => {
     const { languageId } = req.params;
     const userId = req.user.id;
 
-    // Ensure user has this language and default deck
     const user = await User.findById(userId);
     const language = user.languages.find(lang => lang.languageId === languageId);
     if (!language) {
@@ -50,7 +62,6 @@ router.get('/:languageId', authMiddleware, async (req, res) => {
     const decks = await Deck.find({ userId, languageId })
       .sort({ isDefault: -1, createdAt: -1 });
     
-    // Get card count for each deck
     const decksWithCount = await Promise.all(decks.map(async (deck) => {
       const count = await Flashcard.countDocuments({ deckId: deck._id });
       return {
@@ -104,9 +115,7 @@ router.delete('/:deckId', authMiddleware, async (req, res) => {
       return res.status(400).json({ message: 'Cannot delete default deck' });
     }
 
-    // Delete all cards in the deck
     await Flashcard.deleteMany({ deckId });
-    // Delete the deck
     await Deck.findByIdAndDelete(deckId);
 
     res.json({ message: 'Deck and cards deleted successfully' });

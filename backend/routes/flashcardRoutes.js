@@ -1,66 +1,81 @@
-// routes/flashcardRoutes.js
 const express = require('express');
 const router = express.Router();
 const Flashcard = require('../models/Flashcard');
-const authMiddleware = require('../middleware/authMiddleware');
+const { authMiddleware } = require('../middleware/authMiddleware');
 const User = require('../models/User');
 const Deck = require('../models/Deck');
+const { body, validationResult } = require('express-validator');
 
-router.post('/:languageId', authMiddleware, async (req, res) => {
-  try {
-    const { word, translation, deckId } = req.body;
-    const { languageId } = req.params;
-    const userId = req.user.id;
+// Validation middleware
+const flashcardValidation = [
+  body('word').trim().notEmpty().withMessage('Word is required'),
+  body('translation').trim().notEmpty().withMessage('Translation is required')
+];
 
-    // If no deckId provided, get the default deck
-    let targetDeckId = deckId;
-    if (!targetDeckId) {
-      const user = await User.findById(userId);
-      const language = user.languages.find(lang => lang.languageId === languageId);
-      if (!language || !language.defaultDeckId) {
-        // Create default deck if it doesn't exist
-        const newUser = await User.findById(userId);
-        await newUser.addLanguage(languageId);
-        const updatedLanguage = newUser.languages.find(lang => lang.languageId === languageId);
-        targetDeckId = updatedLanguage.defaultDeckId;
-      } else {
-        targetDeckId = language.defaultDeckId;
+// Create flashcard
+router.post('/:languageId', 
+  authMiddleware,
+  flashcardValidation,
+  async (req, res) => {
+    try {
+      // Check validation results
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
       }
-    }
 
-    // Verify deck exists and belongs to user
-    const deck = await Deck.findOne({ _id: targetDeckId, userId });
-    if (!deck) {
-      return res.status(404).json({ message: 'Deck not found' });
-    }
+      const { word, translation, deckId } = req.body;
+      const { languageId } = req.params;
+      const userId = req.user.id;
 
-    // Check if card already exists in this deck
-    const existingCard = await Flashcard.findOne({
-      userId,
-      deckId: targetDeckId,
-      word: word.toLowerCase()
-    });
+      // If no deckId provided, get the default deck
+      let targetDeckId = deckId;
+      if (!targetDeckId) {
+        const user = await User.findById(userId);
+        const language = user.languages.find(lang => lang.languageId === languageId);
+        if (!language || !language.defaultDeckId) {
+          const newUser = await User.findById(userId);
+          await newUser.addLanguage(languageId);
+          const updatedLanguage = newUser.languages.find(lang => lang.languageId === languageId);
+          targetDeckId = updatedLanguage.defaultDeckId;
+        } else {
+          targetDeckId = language.defaultDeckId;
+        }
+      }
 
-    if (existingCard) {
-      return res.status(400).json({
-        message: 'This word is already in your deck'
+      // Verify deck exists and belongs to user
+      const deck = await Deck.findOne({ _id: targetDeckId, userId });
+      if (!deck) {
+        return res.status(404).json({ message: 'Deck not found' });
+      }
+
+      // Check if card already exists in this deck
+      const existingCard = await Flashcard.findOne({
+        userId,
+        deckId: targetDeckId,
+        word: word.toLowerCase()
       });
+
+      if (existingCard) {
+        return res.status(400).json({
+          message: 'This word is already in your deck'
+        });
+      }
+
+      const newCard = new Flashcard({
+        userId,
+        languageId,
+        deckId: targetDeckId,
+        word: word.toLowerCase(),
+        translation
+      });
+
+      await newCard.save();
+      res.status(201).json(newCard);
+    } catch (error) {
+      console.error('Error creating flashcard:', error);
+      res.status(500).json({ message: 'Error creating flashcard', error: error.message });
     }
-
-    const newCard = new Flashcard({
-      userId,
-      languageId,
-      deckId: targetDeckId,
-      word: word.toLowerCase(),
-      translation
-    });
-
-    await newCard.save();
-    res.status(201).json(newCard);
-  } catch (error) {
-    console.error('Error creating flashcard:', error);
-    res.status(500).json({ message: 'Error creating flashcard', error: error.message });
-  }
 });
 
 // Get all flashcards for a language
@@ -80,32 +95,38 @@ router.get('/:languageId', authMiddleware, async (req, res) => {
 });
 
 // Update flashcard review status
-router.put('/:cardId/review', authMiddleware, async (req, res) => {
-  try {
-    const { cardId } = req.params;
-    const { confidenceLevel } = req.body;
-    const userId = req.user.id;
+router.put('/:cardId/review', 
+  authMiddleware,
+  body('confidenceLevel').isInt({ min: 0, max: 5 }).withMessage('Confidence level must be between 0 and 5'),
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
 
-    const card = await Flashcard.findOne({ _id: cardId, userId });
-    if (!card) {
-      return res.status(404).json({ message: 'Flashcard not found' });
+      const { cardId } = req.params;
+      const { confidenceLevel } = req.body;
+      const userId = req.user.id;
+
+      const card = await Flashcard.findOne({ _id: cardId, userId });
+      if (!card) {
+        return res.status(404).json({ message: 'Flashcard not found' });
+      }
+
+      card.lastReviewed = Date.now();
+      card.reviewCount += 1;
+      card.confidenceLevel = confidenceLevel;
+
+      const daysToAdd = Math.pow(2, confidenceLevel);
+      card.nextReviewDate = new Date(Date.now() + daysToAdd * 24 * 60 * 60 * 1000);
+
+      await card.save();
+      res.json(card);
+    } catch (error) {
+      console.error('Error updating flashcard:', error);
+      res.status(500).json({ message: 'Error updating flashcard' });
     }
-
-    // Update review metadata
-    card.lastReviewed = Date.now();
-    card.reviewCount += 1;
-    card.confidenceLevel = confidenceLevel;
-
-    // Simple spaced repetition algorithm
-    const daysToAdd = Math.pow(2, confidenceLevel);
-    card.nextReviewDate = new Date(Date.now() + daysToAdd * 24 * 60 * 60 * 1000);
-
-    await card.save();
-    res.json(card);
-  } catch (error) {
-    console.error('Error updating flashcard:', error);
-    res.status(500).json({ message: 'Error updating flashcard' });
-  }
 });
 
 // Delete a flashcard

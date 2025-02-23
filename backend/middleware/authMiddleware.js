@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
+const User = require('../models/User'); // Add this import
 
 const authMiddleware = async (req, res, next) => {
-  
   try {
     // Get token from header
     const authHeader = req.headers.authorization;
@@ -11,17 +11,35 @@ const authMiddleware = async (req, res, next) => {
 
     const token = authHeader.split(' ')[1];
     
-    // Verify token using the environment variable
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
-    // Add user to request object - make sure we use the same property name as in token creation
-    req.user = decoded;  // This will have { id: user._id } from the token
+    // Verify token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET, {
+      algorithms: ['HS256'],
+      maxAge: "1h"
+    });
+
+    // Verify user still exists in database
+    const user = await User.findById(decoded.id).select('-password');
+    if (!user) {
+      return res.status(401).json({ message: 'User not found' });
+    }
+
+    // Add user to request object
+    req.user = user;
     
     next();
   } catch (err) {
-    console.log('🔴 Auth Error:', err);
+    console.log('🔴 Auth Error:', err.message);
+    
+    // Send specific error messages for different scenarios
+    if (err.name === 'TokenExpiredError') {
+      return res.status(401).json({ message: 'Token has expired' });
+    }
+    if (err.name === 'JsonWebTokenError') {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+    
     res.status(401).json({ message: 'Token is not valid' });
   }
 };
 
-module.exports = authMiddleware;
+module.exports = { authMiddleware };
