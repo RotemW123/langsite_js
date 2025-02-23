@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import EditTextModal from '../components/EditTextModal';
 import GrammarPanel from '../components/GrammarPanel';
 import { AddToFlashcardsButton, FlashcardCreationDialog } from '../components/FlashcardComponents';
+import TextContainer from '../components/TextContainer';
 
 const TextPage = () => {
   // Get IDs from URL
@@ -334,9 +335,9 @@ const TextPage = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
-        {practiceMode ? renderPracticeText() : (
-            <div className={`prose max-w-none`}>
-              <div className={`${isRTL(languageId) ? 'rtl text-right' : 'ltr text-left'} w-full`} dir={isRTL(languageId) ? 'rtl' : 'ltr'}>
+          {practiceMode ? renderPracticeText() : (
+            <TextContainer isRTL={isRTL(languageId)}>
+              <div className="w-full" dir={isRTL(languageId) ? 'rtl' : 'ltr'}>
                 {visibleChunks.map((chunk, index) => (
                   <p key={index} className="w-full">
                     {chunk.content.split(/(\s+)/).map((word, wordIndex) => {
@@ -363,41 +364,40 @@ const TextPage = () => {
                   </p>
                 ))}
               </div>
-              
-              <FlashcardCreationDialog
-                word={selectedWord}
-                isOpen={showCardDialog}
-                onClose={() => {
-                  setShowCardDialog(false);
-                  setSelectedWord(null);
-                }}
-                onSave={async (cardData) => {
-                  try {
-                    const response = await fetch(`http://localhost:5000/api/flashcards/${languageId}`, {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                      },
-                      body: JSON.stringify(cardData)
-                    });
-                    
-                    if (response.ok) {
-
-                    } else {
-                      console.error('Failed to create card');
-                    }
-                  } catch (error) {
-                    console.error('Error creating flashcard:', error);
-                  } finally {
-                    setShowCardDialog(false);
-                    setSelectedWord(null);
-                  }
-                }}
-              />
-            </div>
+            </TextContainer>
           )}
-          
+
+          <FlashcardCreationDialog
+            word={selectedWord}
+            isOpen={showCardDialog}
+            onClose={() => {
+              setShowCardDialog(false);
+              setSelectedWord(null);
+            }}
+            onSave={async (cardData) => {
+              try {
+                const response = await fetch(`http://localhost:5000/api/flashcards/${languageId}`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                  },
+                  body: JSON.stringify(cardData)
+                });
+                
+                if (response.ok) {
+                } else {
+                  console.error('Failed to create card');
+                }
+              } catch (error) {
+                console.error('Error creating flashcard:', error);
+              } finally {
+                setShowCardDialog(false);
+                setSelectedWord(null);
+              }
+            }}
+          />
+
           {hasMore && (
             <div className="mt-8 text-center">
               <button
