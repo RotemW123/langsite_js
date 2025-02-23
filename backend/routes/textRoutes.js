@@ -1,40 +1,52 @@
 const express = require('express');
 const Text = require('../models/Text');
-const authMiddleware = require('../middleware/authMiddleware');
+const { authMiddleware } = require('../middleware/authMiddleware');
 const router = express.Router();
+const { body, validationResult } = require('express-validator');
+
+// Upload validation middleware
+const uploadValidation = [
+  body('title').trim().notEmpty().withMessage('Title is required'),
+  body('content').trim().notEmpty().withMessage('Content is required')
+];
 
 // Upload new text with language
-router.post("/:languageId/upload", authMiddleware, async (req, res) => {
-  const { title, content } = req.body;
-  const { languageId } = req.params;
-  const userId = req.user.id;
+router.post("/:languageId/upload", 
+  authMiddleware, // Authentication middleware
+  uploadValidation, // Validation middleware
+  async (req, res) => {
+    try {
+      // Check validation results
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
 
-  if (!title || !content) {
-    return res.status(400).json({ message: 'Title and content are required' });
-  }
+      const { title, content } = req.body;
+      const { languageId } = req.params;
+      const userId = req.user.id;
 
-  try {
-    const { chunks, totalChunks } = Text.chunkContent(content);
-    
-    const newText = new Text({
-      userId,
-      languageId,
-      title,
-      chunks,
-      totalChunks
-    });
-    
-    const savedText = await newText.save();
-    
-    res.status(201).json({ 
-      message: 'Text saved successfully',
-      textId: savedText._id,
-      totalChunks
-    });
-  } catch (error) {
-    console.error('Error saving text:', error);
-    res.status(500).json({ message: 'Error saving text' });
-  }
+      const { chunks, totalChunks } = Text.chunkContent(content);
+      
+      const newText = new Text({
+        userId,
+        languageId,
+        title,
+        chunks,
+        totalChunks
+      });
+      
+      const savedText = await newText.save();
+      
+      res.status(201).json({ 
+        message: 'Text saved successfully',
+        textId: savedText._id,
+        totalChunks
+      });
+    } catch (error) {
+      console.error('Error saving text:', error);
+      res.status(500).json({ message: 'Error saving text' });
+    }
 });
 
 // Get user's texts for specific language
@@ -47,7 +59,7 @@ router.get('/:languageId/mytexts', authMiddleware, async (req, res) => {
       { userId, languageId },
       {
         title: 1,
-        'chunks.content': { $slice: 1 }, // Only get first chunk for preview
+        'chunks.content': { $slice: 1 },
         createdAt: 1
       }
     );

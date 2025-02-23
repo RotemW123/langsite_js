@@ -14,24 +14,32 @@ function SignUp() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
+    setError('');
+    setMessage('');
+
     try {
+      // Log the data being sent
+
       const response = await axios.post('http://localhost:5000/api/auth/signup', {
         username,
         email,
         password,
+      }, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
 
       setMessage(response.data.message);
-      setError('');
 
+      // Wait a bit before redirecting
       setTimeout(() => {
         navigate('/signin');
       }, 2000);
       
     } catch (err) {
-      console.error(err);
-      setError(err.response?.data?.message || 'An error occurred during registration');
-      setMessage('');
+      console.error('Signup error:', err.response?.data || err);
+      setError(err.response?.data?.message || err.response?.data?.errors?.[0]?.msg || 'An error occurred during registration');
     } finally {
       setIsLoading(false);
     }
