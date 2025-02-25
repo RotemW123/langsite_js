@@ -6,18 +6,15 @@ logger = logging.getLogger(__name__)
 
 class ArabicProcessor:
     def __init__(self):
-        logger.info("Initializing ArabicProcessor")
         self.nlp = None
         try:
             self.initialize_models()
-            logger.info("Successfully initialized ArabicProcessor")
         except Exception as e:
             logger.error(f"Failed to initialize ArabicProcessor: {e}")
             raise
 
     def initialize_models(self):
         """Initialize Stanza model."""
-        logger.info("Loading models...")
         try:
             # Download Arabic model if not already downloaded
             stanza.download('ar')
@@ -26,7 +23,6 @@ class ArabicProcessor:
             self.nlp = stanza.Pipeline('ar', processors='tokenize,pos,lemma,mwt', use_gpu=False)
             
             self._test_pipeline()
-            logger.info("Models loaded successfully")
         except Exception as e:
             logger.error(f"Error initializing models: {e}")
             raise
@@ -47,7 +43,7 @@ class ArabicProcessor:
     def get_feature(self, word) -> Optional[str]:
         """Determine the grammatical feature of a word."""
         if word.upos == "VERB":
-            # Check feats for aspect information
+            # Check feats for aspect informaticon
             if word.feats:
                 if "Aspect=Perf" in word.feats:
                     return "past"
@@ -87,7 +83,6 @@ class ArabicProcessor:
 
     def analyze_text(self, text: str, features: List[str]) -> Dict[str, Any]:
         """Analyze Arabic text for specific grammatical features."""
-        logger.info(f"Analyzing text with features: {features}")
         
         try:
             doc = self.nlp(text)
@@ -114,7 +109,6 @@ class ArabicProcessor:
                     
                     current_position += len(word.text)
             
-            logger.info(f"Found {len(words_to_practice)} words to practice")
             return {
                 'text': text,
                 'words': words_to_practice
@@ -123,10 +117,11 @@ class ArabicProcessor:
         except Exception as e:
             logger.error(f"Error analyzing text: {e}")
             raise
-
+            
     def check_answer(self, original: str, answer: str, feature: str) -> Dict[str, Any]:
         """Check if the answer matches the original form."""
         try:
+
             # Clean up and normalize the strings for comparison
             original_clean = original.strip()
             answer_clean = answer.strip()
