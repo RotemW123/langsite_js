@@ -1,6 +1,19 @@
+# Core dependencies from pipreqs
 Flask==3.1.0
 Flask_Cors==5.0.0
 numpy==1.24.3
 spacy==3.8.4
 stanza==1.4.0
 trankit==1.1.2
+
+# Language models - medium versions
+es_core_news_md @ https://github.com/explosion/spacy-models/releases/download/es_core_news_md-3.8.0/es_core_news_md-3.8.0-py3-none-any.whl
+fr_core_news_md @ https://github.com/explosion/spacy-models/releases/download/fr_core_news_md-3.8.0/fr_core_news_md-3.8.0-py3-none-any.whl
+ru_core_news_md @ https://github.com/explosion/spacy-models/releases/download/ru_core_news_md-3.8.0/ru_core_news_md-3.8.0-py3-none-any.whl
+
+# Other dependencies required by your code
+pymorphy3==2.0.2
+pymorphy3-dicts-ru==2.4.417150.4580142
+logging
+typing
+unicodedata
