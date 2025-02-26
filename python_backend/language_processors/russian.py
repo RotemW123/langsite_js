@@ -1,16 +1,13 @@
 import spacy
-import pymorphy3
-import stanza
 from typing import List, Dict, Any, Optional, Tuple
 import logging
+import pymorphy3 
 
 logger = logging.getLogger(__name__)
 
 class RussianProcessor:
     def __init__(self):
         self.nlp_spacy = None
-        self.nlp_stanza = None
-        self.morph = None
         try:
             self.initialize_models()
         except Exception as e:
@@ -18,8 +15,9 @@ class RussianProcessor:
             raise
         
     def initialize_models(self):
-        """Initialize spaCy, stanza, and pymorphy models."""
-        self.nlp_spacy = spacy.load('ru_core_news_lg')
+        """Initialize spaCy"""
+        self.nlp_spacy = spacy.load('ru_core_news_md')
+        self.morph = pymorphy3.MorphAnalyzer()
 
     def get_nominative_form(self, word: str) -> str:
         """Get the nominative form of a word using pymorphy3."""

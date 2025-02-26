@@ -16,11 +16,8 @@ class ArabicProcessor:
     def initialize_models(self):
         """Initialize Stanza model."""
         try:
-            # Download Arabic model if not already downloaded
             stanza.download('ar')
-            
-            # Initialize the pipeline for Arabic
-            self.nlp = stanza.Pipeline('ar', processors='tokenize,pos,lemma,mwt', use_gpu=False)
+            self.nlp = stanza.Pipeline('ar', processors='tokenize,pos,lemma', use_gpu=False)
             
             self._test_pipeline()
         except Exception as e:
