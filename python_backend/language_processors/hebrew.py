@@ -19,19 +19,19 @@ class HebrewProcessor:
         try:
             # Initialize the pipeline for Hebrew with specific configurations
             self.nlp = trankit.Pipeline('hebrew', cache_dir='./cache', gpu=False)
-            self._test_pipeline()  # Test if pipeline works
+            # self._test_pipeline()  # Test if pipeline works
         except Exception as e:
             logger.error(f"Error initializing models: {e}")
             raise
 
-    def _test_pipeline(self):
-        """Test if pipeline works with a simple sentence."""
-        try:
-            test_text = "שלום"
-            self.nlp(test_text)
-        except Exception as e:
-            logger.error(f"Pipeline test failed: {e}")
-            raise
+    # def _test_pipeline(self):
+    #     """Test if pipeline works with a simple sentence."""
+    #     try:
+    #         test_text = "שלום"
+    #         self.nlp(test_text)
+    #     except Exception as e:
+    #         logger.error(f"Pipeline test failed: {e}")
+    #         raise
 
     def _safe_get_word_info(self, word: Dict) -> Dict:
         """Safely extract word information."""

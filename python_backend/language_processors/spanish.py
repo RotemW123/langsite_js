@@ -16,7 +16,7 @@ class SpanishProcessor:
 
     def initialize_models(self):
         """Initialize spaCy model."""
-        self.nlp = spacy.load('es_core_news_lg')
+        self.nlp = spacy.load('es_core_news_md')
 
     def get_infinitive(self, token) -> str:
         """Get the infinitive form of a verb."""
