@@ -16,4 +16,3 @@ pymorphy3==2.0.2
 pymorphy3-dicts-ru==2.4.417150.4580142
 logging
 typing
-unicodedata
