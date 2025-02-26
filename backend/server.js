@@ -20,7 +20,7 @@ app.use(cookieParser()); // For handling httpOnly cookies
 
 // Configure CORS with specific origin
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:5173'],
+  origin: ['http://localhost:3000', 'http://localhost:5173', 'https://sprightly-naiad-33cd57.netlify.app'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -50,12 +50,10 @@ app.use((err, req, res, next) => {
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/signedUsers', {
   serverSelectionTimeoutMS: 5000
 }).then(() => {
-  console.log('Connected to MongoDB');
 }).catch((err) => {
   console.error('Mongoose connection error:', err);
 });
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
 });
