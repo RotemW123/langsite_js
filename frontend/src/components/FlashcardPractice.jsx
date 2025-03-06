@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useParams } from 'react-router-dom';
+import { API_URL } from '../utils/api';
+
 
 const TrashIcon = () => (
   <svg 
@@ -45,8 +47,8 @@ const FlashcardPractice = () => {
 
         // Update URL to include deckId if provided
         const url = deckId 
-          ? `http://localhost:5000/api/decks/${languageId}/${deckId}`
-          : `http://localhost:5000/api/flashcards/${languageId}`;
+          ? `${API_URL}/api/decks/${languageId}/${deckId}`
+          : `${API_URL}/api/flashcards/${languageId}`;
 
         const response = await fetch(url, {
           headers: {
@@ -85,7 +87,7 @@ const FlashcardPractice = () => {
       const currentCard = cards[currentCardIndex];
       
       const response = await fetch(
-        `http://localhost:5000/api/flashcards/${currentCard._id}`,
+        `${API_URL}/api/flashcards/${currentCard._id}`,
         {
           method: 'DELETE',
           headers: {

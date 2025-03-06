@@ -1,6 +1,7 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { API_URL } from '../utils/api';
 
 const ProtectedRoute = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -13,19 +14,18 @@ const ProtectedRoute = ({ children }) => {
     const verifyAuth = async () => {
       try {
         const token = localStorage.getItem('token');
-        console.log('Verifying token:', token ? 'Token exists' : 'No token');
         
         if (!token) {
           throw new Error('No token found');
         }
 
-        const response = await axios.get('http://localhost:5000/api/auth/verify', {
+        const response = await fetch(`${API_URL}/api/auth/verify`, {
+            method: 'GET',
           headers: {
             Authorization: `Bearer ${token}`
           }
         });
 
-        console.log('Verification response:', response.data);
 
         if (isMounted) {
           if (response.data.valid) {
@@ -65,7 +65,6 @@ const ProtectedRoute = ({ children }) => {
   }
 
   if (!isAuthenticated) {
-    console.log('Not authenticated, redirecting to signin');
     // Clear any potentially stale auth data
     localStorage.removeItem('token');
     localStorage.removeItem('userId');

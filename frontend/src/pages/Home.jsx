@@ -3,6 +3,8 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import TextModal from '../components/TextModal';
 import EditTextModal from '../components/EditTextModal';
+import { API_URL } from '../utils/api';
+
 
 function HomePage() {
   const [texts, setTexts] = useState([]);
@@ -13,9 +15,11 @@ function HomePage() {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
+
+
+
   const fetchTexts = async () => {
     const token = localStorage.getItem('token');
-    console.log("🔍 Checking token:", token ? "Token exists" : "No token found");
     
     if (!token) {
       console.error("No token found - redirecting to signin");
@@ -25,20 +29,18 @@ function HomePage() {
 
     try {
       setLoading(true);
-      console.log("🟢 Making API request with token");
-      const response = await axios.get('http://localhost:5000/api/text/mytexts', {
+      const response = await fetch(`${API_URL}/api/text/mytexts`, {
+        method: 'GET',
         headers: {
           Authorization: `Bearer ${token}`,
         }
       });
-      console.log("🟢 API Response:", response.data);
       setTexts(response.data);
       setError('');
     } catch (err) {
       console.error('🔴 Error fetching texts:', err.response || err);
       setError('Failed to load texts');
       if (err.response?.status === 401) {
-        console.log("🔴 Unauthorized - clearing token and redirecting");
         localStorage.removeItem('token');
         localStorage.removeItem('userId');
         navigate('/signin');
@@ -51,7 +53,6 @@ function HomePage() {
   useEffect(() => {
     const token = localStorage.getItem('token');
     const userId = localStorage.getItem('userId');
-    console.log("🔍 Initial auth check - Token:", token ? "exists" : "missing", "UserId:", userId ? "exists" : "missing");
     
     if (!token || !userId) {
       navigate('/signin');
@@ -99,7 +100,8 @@ function HomePage() {
     }
 
     try {
-      await axios.delete(`http://localhost:5000/api/text/${textId}`, {
+      await fetch(`${API_URL}/api/text/${textId}`, {
+        method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
         }

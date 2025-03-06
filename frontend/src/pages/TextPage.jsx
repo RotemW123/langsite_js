@@ -50,7 +50,7 @@ const TextPage = () => {
       .filter(([_, isSelected]) => isSelected)
       .map(([featureId]) => featureId);
 
-    const response = await fetch(`http://localhost:5001/analyze/${languageId}`, {
+    const response = await fetch(`${PYTHON_API_URL}/analyze/${languageId}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -84,7 +84,7 @@ const TextPage = () => {
       setLoading(true);
 
       const response = await fetch(
-        `http://localhost:5000/api/text/${languageId}/${textId}/chunks?page=${page}`,
+        `${API_URL}/api/text/${languageId}/${textId}/chunks?page=${page}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -199,7 +199,7 @@ const TextPage = () => {
   const handleAnswerCheck = async (wordId) => {
     try {
       const word = practiceWords[wordId];
-      const response = await fetch(`http://localhost:5001/check/${languageId}`, {
+      const response = await fetch(`${PYTHON_API_URL}/check/${languageId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -376,7 +376,7 @@ const TextPage = () => {
             }}
             onSave={async (cardData) => {
               try {
-                const response = await fetch(`http://localhost:5000/api/flashcards/${languageId}`, {
+                const response = await fetch(`${API_URL}/api/flashcards/${languageId}`, {
                   method: 'POST',
                   headers: {
                     'Content-Type': 'application/json',

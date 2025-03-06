@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { API_URL } from '../utils/api';
+
 
 const EditTextModal = ({ text, languageId, closeModal }) => {
   const [title, setTitle] = useState(text.title);
@@ -20,7 +22,7 @@ const EditTextModal = ({ text, languageId, closeModal }) => {
 
     try {
       const response = await fetch(
-        `http://localhost:5000/api/text/${languageId}/${text._id}`,
+        `${API_URL}/api/text/${languageId}/${text._id}`,
         {
           method: 'PUT',
           headers: {

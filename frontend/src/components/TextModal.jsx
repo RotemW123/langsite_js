@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { API_URL } from '../utils/api';
 
 const TextModal = ({ languageId, closeModal }) => {
   const [title, setTitle] = useState('');
@@ -20,7 +21,7 @@ const TextModal = ({ languageId, closeModal }) => {
 
     try {
       const response = await fetch(
-        `http://localhost:5000/api/text/${languageId}/upload`,
+        `${API_URL}/api/text/${languageId}/upload`,
         {
           method: 'POST',
           headers: {
