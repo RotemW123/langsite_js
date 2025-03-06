@@ -3,6 +3,10 @@ import TextModal from '../components/TextModal';
 import EditTextModal from '../components/EditTextModal';
 import { useNavigate } from 'react-router-dom';
 
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+
 const LanguageHome = () => {
   const [texts, setTexts] = useState([]);
   const [showModal, setShowModal] = useState(false);
@@ -27,17 +31,15 @@ const LanguageHome = () => {
 
   const fetchTexts = async () => {
     const token = localStorage.getItem('token');
-    console.log("Fetching texts with token:", token); // Debug log
     
     if (!token) {
       window.location.href = '/signin';
       return;
     }
-
     try {
       setLoading(true);
       const response = await fetch(
-        `http://localhost:5000/api/text/${languageId}/mytexts`,
+        `${API_URL}/api/text/${languageId}/mytexts`,
         {
           method: 'GET',
           headers: {
@@ -58,7 +60,6 @@ const LanguageHome = () => {
       }
       
       const data = await response.json();
-      console.log("Fetched texts:", data); // Debug log
       setTexts(data);
       setError('');
     } catch (err) {
