@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import TextModal from '../components/TextModal';
 import EditTextModal from '../components/EditTextModal';
 import { useNavigate } from 'react-router-dom';
-
+import { API_URL } from '../utils/api';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -123,7 +123,7 @@ const LanguageHome = () => {
 
     try {
       const response = await fetch(
-        `http://localhost:5000/api/text/${languageId}/${textId}`,
+        `${API_URL}/api/text/${languageId}/${textId}`,
         {
           method: 'DELETE',
           headers: {

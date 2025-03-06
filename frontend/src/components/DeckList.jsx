@@ -1,6 +1,8 @@
 // src/components/DeckList.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { API_URL } from '../utils/api';
+
 
 const DeckList = () => {
   const [decks, setDecks] = useState([]);
@@ -17,7 +19,7 @@ const DeckList = () => {
   const fetchDecks = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/decks/${languageId}`, {
+      const response = await fetch(`${API_URL}/api/decks/${languageId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -37,7 +39,7 @@ const DeckList = () => {
   const handleCreateDeck = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/decks/${languageId}`, {
+      const response = await fetch(`${API_URL}/api/decks/${languageId}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -61,7 +63,7 @@ const DeckList = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/decks/${deckId}`, {
+      const response = await fetch(`${API_URL}/api/decks/${deckId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`

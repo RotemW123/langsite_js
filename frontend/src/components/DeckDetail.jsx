@@ -1,6 +1,7 @@
 // src/components/DeckDetail.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { API_URL } from '../utils/api';
 
 const DeckDetail = () => {
   const [deck, setDeck] = useState(null);
@@ -17,7 +18,7 @@ const DeckDetail = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `http://localhost:5000/api/decks/${languageId}/${deckId}`,
+        `${API_URL}/api/decks/${languageId}/${deckId}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -43,7 +44,7 @@ const DeckDetail = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `http://localhost:5000/api/flashcards/${cardId}`,
+        `${API_URL}/api/flashcards/${cardId}`,
         {
           method: 'DELETE',
           headers: {

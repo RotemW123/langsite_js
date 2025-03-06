@@ -1,5 +1,6 @@
 // src/components/FlashcardComponents.jsx
 import React, { useState, useEffect } from 'react';
+import { API_URL } from '../utils/api';
 
 
 
@@ -29,7 +30,7 @@ export const FlashcardCreationDialog = ({ word, isOpen, onClose, onSave }) => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `http://localhost:5000/api/decks/${languageId}`,
+        `${API_URL}/api/decks/${languageId}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`
