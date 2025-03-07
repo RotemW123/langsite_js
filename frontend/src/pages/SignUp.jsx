@@ -33,6 +33,12 @@ function SignUp() {
         })
       });
 
+      const data = await response.json();
+  
+      if (!response.ok) {
+        throw { status: response.status, data };
+      }
+
       setMessage(response.data.message);
 
       // Wait a bit before redirecting
@@ -41,8 +47,8 @@ function SignUp() {
       }, 2000);
       
     } catch (err) {
-      console.error('Signup error:', err.response?.data || err);
-      setError(err.response?.data?.message || err.response?.data?.errors?.[0]?.msg || 'An error occurred during registration');
+      console.error('Signup error:', err);
+      setError('An error occurred during registration');
     } finally {
       setIsLoading(false);
     }

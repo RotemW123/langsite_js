@@ -39,7 +39,7 @@ const TextModal = ({ languageId, closeModal }) => {
       closeModal(true);
     } catch (err) {
       console.error('Error saving text:', err);
-      setError(err.response?.data?.message || 'Failed to save text');
+      setError('Failed to save text');
       setIsSubmitting(false);
     }
   };
