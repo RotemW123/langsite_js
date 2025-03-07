@@ -26,6 +26,8 @@ const ProtectedRoute = ({ children }) => {
           }
         });
 
+        const data = await response.json();
+        console.log('Verification response:', data);
 
         if (isMounted) {
           if (response.data.valid) {
