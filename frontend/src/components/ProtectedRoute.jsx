@@ -1,6 +1,5 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import axios from 'axios';
 import { API_URL } from '../utils/api';
 
 const ProtectedRoute = ({ children }) => {
@@ -20,17 +19,18 @@ const ProtectedRoute = ({ children }) => {
         }
 
         const response = await fetch(`${API_URL}/api/auth/verify`, {
-            method: 'GET',
+          method: 'GET',
           headers: {
             Authorization: `Bearer ${token}`
           }
         });
 
+        // Get the JSON data from the response
         const data = await response.json();
         console.log('Verification response:', data);
 
         if (isMounted) {
-          if (response.data.valid) {
+          if (data.valid) {
             setIsAuthenticated(true);
           } else {
             throw new Error('Token invalid');
