@@ -17,37 +17,33 @@ const SignIn = () => {
     setMessage("");
 
     try {
-      const response = await fetch(`${API_URL}/api/auth/signup`, {
-        method: 'POST',
+      const response = await fetch(`${API_URL}/api/auth/signin`, {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json'
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify(userData)
+        body: JSON.stringify({ email, password }),
       });
-    
+
       const data = await response.json();
-      
-      if (!response.ok) {
-        throw { status: response.status, data };
-      }
-    
-      setMessage(data.message);
-      
-      // Wait a bit before redirecting
-      setTimeout(() => {
-        navigate('/signin');
-      }, 2000);
-    } catch (err) {
-      console.error('Signup error:', err);
-      // Handle the error properly based on its structure
-      if (err.data && err.data.message) {
-        setError(err.data.message);
-      } else if (err.data && err.data.errors && err.data.errors.length > 0) {
-        setError(err.data.errors[0].msg);
+
+      if (response.ok && data.token && data.user) {
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("userId", data.user.id);
+        setMessage("Login successful!");
+        window.location.href = "/language-selection";
       } else {
-        setError('An error occurred during registration');
+        setError(data.message || "Login failed");
+        localStorage.removeItem("token");
+        localStorage.removeItem("userId");
       }
+    } catch (err) {
+      console.error("Login error:", err);
+      setError("Error during login. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center p-4">
