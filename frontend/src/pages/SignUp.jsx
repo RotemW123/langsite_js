@@ -23,13 +23,14 @@ function SignUp() {
 
       const response = await fetch(`${API_URL}/api/auth/signup`, {
         method: 'POST',
-        username,
-        email,
-        password,
-      }, {
         headers: {
-          'Content-Type': 'application/json'
-        }
+          'Content-Type': 'application/json' // This header is important
+        },
+        body: JSON.stringify({   // Make sure JSON.stringify is used
+          username,
+          email,
+          password,
+        })
       });
 
       setMessage(response.data.message);
