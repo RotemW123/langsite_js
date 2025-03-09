@@ -3,6 +3,10 @@ import EditTextModal from '../components/EditTextModal';
 import GrammarPanel from '../components/GrammarPanel';
 import { AddToFlashcardsButton, FlashcardCreationDialog } from '../components/FlashcardComponents';
 import TextContainer from '../components/TextContainer';
+import { API_URL } from '../utils/api';
+
+// Define PYTHON_API_URL if it doesn't exist elsewhere
+const PYTHON_API_URL = process.env.REACT_APP_PYTHON_API_URL || 'http://localhost:5000';
 
 const TextPage = () => {
   // Get IDs from URL
