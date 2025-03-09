@@ -8,7 +8,7 @@ const SignIn = () => {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-
+  const [isGuestLoading, setIsGuestLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -42,6 +42,43 @@ const SignIn = () => {
       setError("Error during login. Please try again.");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleGuestLogin = async () => {
+    setIsGuestLoading(true);
+    setError("");
+    setMessage("");
+
+    try {
+      const response = await fetch(`${API_URL}/api/auth/signin`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ 
+          email: "guest@mail", 
+          password: "guest123" 
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.token && data.user) {
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("userId", data.user.id);
+        setMessage("Guest login successful!");
+        window.location.href = "/language-selection";
+      } else {
+        setError(data.message || "Guest login failed");
+        localStorage.removeItem("token");
+        localStorage.removeItem("userId");
+      }
+    } catch (err) {
+      console.error("Guest login error:", err);
+      setError("Error during guest login. Please try again.");
+    } finally {
+      setIsGuestLoading(false);
     }
   };
 
@@ -107,7 +144,25 @@ const SignIn = () => {
             {isLoading ? "Signing in..." : "Sign In"}
           </button>
 
-          <div className="text-center">
+          <div className="relative my-4">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white text-gray-500">or</span>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleGuestLogin}
+            disabled={isGuestLoading}
+            className="w-full bg-gradient-to-r from-green-500 to-teal-500 text-white py-2 px-4 rounded-lg hover:from-green-600 hover:to-teal-600 transition-all duration-200"
+          >
+            {isGuestLoading ? "Entering as Guest..." : "Enter as Guest"}
+          </button>
+
+          <div className="text-center mt-4">
             <Link to="/" className="text-indigo-600 hover:text-indigo-500 text-sm">
               ← Back to home
             </Link>
