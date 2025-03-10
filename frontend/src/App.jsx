@@ -48,7 +48,7 @@ function App() {
             Welcome to LangSite
           </h1>
           <p className="text-xl mb-12 opacity-90">
-            Your Language learning Journey Starts Here
+            Your Language Learning Journey Starts Here
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
